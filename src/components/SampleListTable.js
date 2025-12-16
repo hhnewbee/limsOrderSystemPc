@@ -242,6 +242,67 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
     XLSX.writeFile(workbook, '样本清单模板.xlsx');
   }, []);
 
+  // 导出数据
+  const handleExportData = useCallback(() => {
+    if (data.length === 0) {
+      message.warning('没有数据可导出');
+      return;
+    }
+
+    const exportData = data.map((item, index) => {
+      let row = {
+        '序号': index + 1,
+        '样本名称': item.sampleName || '',
+        '检测或暂存': item.detectionOrStorage || '',
+        '样品管数': item.sampleTubeCount || 1,
+      };
+
+      // 如果需要生信分析，添加相关字段（必须在最后）
+      if (needBioinformaticsAnalysis) {
+        row = {
+          '序号': index + 1,
+          '样本名称': item.sampleName || '',
+          '分析名称': item.analysisName || '',
+          '分组名称': item.sampleTubeCount || 1,
+          '检测或暂存': item.detectionOrStorage || '',
+          '样品管数': item.sampleTubeCount || 1,
+        };
+      }
+
+      row['实验设计描述及样本备注'] = item.experimentDescription || ''
+
+
+      return row;
+    });
+
+    const worksheet = XLSX.utils.json_to_sheet(exportData);
+
+    // 设置列宽
+    const columnWidths = needBioinformaticsAnalysis
+      ? [
+          { wch: 8 },   // 序号
+          { wch: 15 },  // 样本名称
+          { wch: 12 },  // 分析名称
+          { wch: 12 },  // 分组名称
+          { wch: 12 },  // 检测或暂存
+          { wch: 12 },  // 样品管数
+          { wch: 30 },  // 实验设计描述及样本备注
+        ]
+      : [
+          { wch: 8 },   // 序号
+          { wch: 15 },  // 样本名称
+          { wch: 12 },  // 检测或暂存
+          { wch: 12 },  // 样品管数
+          { wch: 30 }   // 实验设计描述及样本备注
+        ];
+    worksheet['!cols'] = columnWidths;
+
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, '样本清单');
+    XLSX.writeFile(workbook, `样本清单_${new Date().getTime()}.xlsx`);
+    message.success('导出成功');
+  }, [data, needBioinformaticsAnalysis]);
+
   // 准备传递给 Row 组件的数据
   const itemData = {
     items: data,
@@ -268,9 +329,9 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
         <div className="table-actions">
           {!disabled && (
             <>
-              <Button 
-                type="primary" 
-                icon={<PlusOutlined />} 
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
                 onClick={handleAddRow}
               >
                 添加行
@@ -283,8 +344,8 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
                 <Button icon={<UploadOutlined />}>导入</Button>
               </Upload>
               {selectedRows.size > 0 && (
-                <Button 
-                  danger 
+                <Button
+                  danger
                   icon={<DeleteOutlined />}
                   onClick={handleBatchDelete}
                 >
@@ -295,6 +356,9 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
           )}
           <Button icon={<DownloadOutlined />} onClick={handleDownloadTemplate}>
             下载模板
+          </Button>
+          <Button icon={<DownloadOutlined />} onClick={handleExportData}>
+            导出数据
           </Button>
         </div>
         <span>共 {data.length} 条数据</span>
