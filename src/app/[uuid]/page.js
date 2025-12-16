@@ -34,6 +34,8 @@ export default function OrderPage() {
     try {
       setLoading(true);
       const response = await axios.get(`/api/order/${uuid}`);
+      console.log('【调试】API 返回的订单数据:', response.data);
+      console.log('【调试】多组比较数据:', response.data.multiGroupComparison);
       setOrderData(response.data);
       initialDataRef.current = JSON.stringify(response.data);
     } catch (error) {

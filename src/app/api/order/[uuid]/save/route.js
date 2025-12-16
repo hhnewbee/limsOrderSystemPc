@@ -1,6 +1,27 @@
 import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 
+// 将 ISO 时间字符串转换为 MySQL DATETIME 格式
+function formatDateTimeForMySQL(dateString) {
+  if (!dateString) return null;
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return null;
+
+    // 获取本地时间，而不是 UTC
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  } catch (error) {
+    return null;
+  }
+}
+
 // 暂存订单数据
 export async function POST(request, { params }) {
   const { uuid } = params;
@@ -43,7 +64,7 @@ export async function POST(request, { params }) {
         data.needBioinformaticsAnalysis ? 1 : 0,
         data.shippingMethod || null,
         data.expressCompanyWaybill || null,
-        data.shippingTime || null,
+        formatDateTimeForMySQL(data.shippingTime),
         uuid
       ]
     );
@@ -124,6 +145,16 @@ export async function POST(request, { params }) {
 
       for (let i = 0; i < data.multiGroupComparison.length; i++) {
         const comparison = data.multiGroupComparison[i];
+        // 确保 comparisonGroups 是数组，如果是字符串则转换
+        let groupsData = comparison.comparisonGroups;
+        if (typeof groupsData === 'string') {
+          // 如果是逗号分隔的字符串，转换为数组
+          groupsData = groupsData.split(',').map(g => g.trim()).filter(g => g);
+        }
+        if (!Array.isArray(groupsData)) {
+          groupsData = [];
+        }
+
         await connection.execute(
           `INSERT INTO multi_group_comparison (
             order_id, sequence_no, comparison_groups
@@ -131,7 +162,7 @@ export async function POST(request, { params }) {
           [
             orderId,
             i + 1,
-            JSON.stringify(comparison.comparisonGroups || [])
+            JSON.stringify(groupsData)
           ]
         );
       }

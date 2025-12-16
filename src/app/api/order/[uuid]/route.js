@@ -158,11 +158,41 @@ export async function GET(request, { params }) {
             controlGroup: p.control_group,
             comparisonScheme: p.comparison_scheme
           })),
-          multiGroupComparison: multiGroupComparison.map(m => ({
-            id: m.id,
-            sequenceNo: m.sequence_no,
-            comparisonGroups: JSON.parse(m.comparison_groups)
-          }))
+          multiGroupComparison: multiGroupComparison.map(m => {
+            let comparisonGroups = [];
+
+            if (m.comparison_groups) {
+              // 转换为字符串（处理 Buffer 或其他类型）
+              let str = m.comparison_groups.toString ? m.comparison_groups.toString() : String(m.comparison_groups);
+              str = str.trim();
+
+              // 首先尝试 JSON 解析
+              if (str.startsWith('[') && str.endsWith(']')) {
+                try {
+                  const parsed = JSON.parse(str);
+                  if (Array.isArray(parsed)) {
+                    comparisonGroups = parsed;
+                  }
+                } catch (e) {
+                  console.warn('[API] JSON 解析失败:', e.message, '原值:', str);
+                }
+              }
+
+              // 如果 JSON 解析失败或不是 JSON 格式，尝试按逗号分割
+              if (comparisonGroups.length === 0 && str.length > 0) {
+                comparisonGroups = str
+                  .split(',')
+                  .map(g => g.trim())
+                  .filter(g => g.length > 0);
+              }
+            }
+
+            return {
+              id: m.id,
+              sequenceNo: m.sequence_no,
+              comparisonGroups: Array.isArray(comparisonGroups) ? comparisonGroups : []
+            };
+          })
         };
       }
 

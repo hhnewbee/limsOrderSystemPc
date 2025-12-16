@@ -2,7 +2,7 @@
 
 import { useState, useCallback, useRef, memo } from 'react';
 import { Button, Input, Select, InputNumber, Upload, message } from 'antd';
-import { PlusOutlined, DeleteOutlined, UploadOutlined, DownloadOutlined } from '@ant-design/icons';
+import { PlusOutlined, DeleteOutlined, UploadOutlined, DownloadOutlined, CopyOutlined } from '@ant-design/icons';
 import { FixedSizeList as List } from 'react-window';
 import * as XLSX from 'xlsx';
 
@@ -54,7 +54,7 @@ const InputWithError = ({ value, onChange, disabled, error, size = "small" }) =>
 
 // 将 Row 组件提取到外部，避免每次渲染时重新创建
 const TableRow = memo(function TableRow({ index, style, data: itemData }) {
-  const { items, errors, disabled, needBioinformaticsAnalysis, onCellChange, onDeleteRow } = itemData;
+  const { items, errors, disabled, needBioinformaticsAnalysis, onCellChange, onDeleteRow, onCopyRow } = itemData;
   const item = items[index];
   const rowErrors = errors?.[index] || {};
 
@@ -119,15 +119,25 @@ const TableRow = memo(function TableRow({ index, style, data: itemData }) {
           size="small"
         />
       </div>
-      <div className="table-cell" style={{ flex: '0 0 60px', width: 60 }}>
+      <div className="table-cell" style={{ flex: '0 0 80px', width: 80, justifyContent: 'center', gap: 4 }}>
         {!disabled && (
-          <Button
-            type="text"
-            danger
-            icon={<DeleteOutlined />}
-            onClick={() => onDeleteRow(index)}
-            size="small"
-          />
+          <div style={{ display: 'flex', gap: 4 }}>
+            <Button
+              type="text"
+              icon={<CopyOutlined />}
+              onClick={() => onCopyRow(index)}
+              size="small"
+              title="复制行"
+            />
+            <Button
+              type="text"
+              danger
+              icon={<DeleteOutlined />}
+              onClick={() => onDeleteRow(index)}
+              size="small"
+              title="删除行"
+            />
+          </div>
         )}
       </div>
     </div>
@@ -152,6 +162,16 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
       experimentDescription: ''
     };
     onChange([...data, newRow]);
+  }, [data, onChange]);
+
+  // 复制行
+  const handleCopyRow = useCallback((index) => {
+    const rowToCopy = data[index];
+    const newRow = { ...rowToCopy };
+    const newData = [...data];
+    newData.splice(index + 1, 0, newRow);
+    onChange(newData);
+    message.success('行已复制');
   }, [data, onChange]);
 
   // 删除行
@@ -229,7 +249,8 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
     disabled,
     needBioinformaticsAnalysis,
     onCellChange: handleCellChange,
-    onDeleteRow: handleDeleteRow
+    onDeleteRow: handleDeleteRow,
+    onCopyRow: handleCopyRow
   };
 
   return (

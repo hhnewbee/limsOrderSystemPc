@@ -2,6 +2,27 @@ import { NextResponse } from 'next/server';
 import pool from '@/lib/db';
 import { updateFormData, convertToYidaFormat } from '@/lib/dingtalk';
 
+// 将 ISO 时间字符串转换为 MySQL DATETIME 格式
+function formatDateTimeForMySQL(dateString) {
+  if (!dateString) return null;
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return null;
+
+    // 获取本地时间，而不是 UTC
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const hours = String(date.getHours()).padStart(2, '0');
+    const minutes = String(date.getMinutes()).padStart(2, '0');
+    const seconds = String(date.getSeconds()).padStart(2, '0');
+
+    return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
+  } catch (error) {
+    return null;
+  }
+}
+
 // 提交订单
 export async function POST(request, { params }) {
   const { uuid } = params;
@@ -66,7 +87,7 @@ export async function POST(request, { params }) {
         data.needBioinformaticsAnalysis ? 1 : 0,
         data.shippingMethod || null,
         data.expressCompanyWaybill || null,
-        data.shippingTime || null,
+        formatDateTimeForMySQL(data.shippingTime),
         uuid
       ]
     );

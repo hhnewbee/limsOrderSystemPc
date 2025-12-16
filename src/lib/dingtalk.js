@@ -173,13 +173,14 @@ export async function updateFormData(formInstanceId, formData) {
       userId: YIDA_CONFIG.userId,
       appType: YIDA_CONFIG.appType,
       formInstanceId: formInstanceId,
-      updateFormDataJson: JSON.stringify(formData)
+      updateFormDataJson: JSON.stringify(formData),
+      useAlias: true
     };
     
     debugLog('updateFormData - 请求参数', requestBody);
     
     const response = await axios.put(
-      `${DINGTALK_API_BASE}/v1.0/yida/forms/instances`,
+      `${DINGTALK_API_BASE}/v2.0/yida/forms/instances`,
       requestBody,
       {
         headers: {
@@ -271,7 +272,11 @@ export function convertToYidaFormat(localData) {
     SamplePreprocessingMethod: localData.samplePreprocessing || '',
     SpecialInstructionsifYourSampleHasSpecialRequirementsPleaseNoteTheInstructions: localData.specialInstructions || '',
     ExpressCompanyAndWaybillNumber: localData.expressCompanyWaybill || '',
-    Remarks: localData.remarks || ''
+    Remarks: localData.remarks || '',
+    SampleType: localData.sampleType || '',
+    RemainingSampleProcessingMethod: localData.remainingSampleHandling,
+    ModeOfDelivery: localData.shippingMethod,
+    // SampleDeliveryTime: localData.shippingTime,
   };
   
   debugLog('convertToYidaFormat - 转换结果', result);
