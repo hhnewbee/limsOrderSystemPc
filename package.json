@@ -1,0 +1,31 @@
+{
+  "name": "lims-client",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@alicloud/dingtalk": "^2.2.36",
+    "@alicloud/openapi-client": "^0.4.15",
+    "@alicloud/tea-typescript": "^1.8.0",
+    "@alicloud/tea-util": "^1.4.11",
+    "@ant-design/icons": "^5.4.0",
+    "antd": "^5.21.0",
+    "axios": "^1.7.2",
+    "dayjs": "^1.11.12",
+    "mysql2": "^3.11.0",
+    "next": "14.2.21",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-window": "^1.8.10",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "eslint": "^8",
+    "eslint-config-next": "14.2.21"
+  }
+}
