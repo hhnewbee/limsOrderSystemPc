@@ -308,13 +308,18 @@ export default function OrderPage() {
       onOk: async () => {
         try {
           setSubmitting(true);
-          await axios.post(`/api/order/${uuid}/submit`, orderData);
+          const response = await axios.post(`/api/order/${uuid}/submit`, orderData);
+          console.log('[前端] 提交成功:', response.data);
           message.success('提交成功');
           setOrderData(prev => ({ ...prev, status: 'submitted' }));
           setHasUnsavedChanges(false);
         } catch (error) {
-          console.error('提交失败:', error);
-          message.error(error.response?.data?.error || '提交失败');
+          console.error('[前端] 提交失败:', error);
+          const errorMessage = error.response?.data?.error || error.message || '提交失败';
+          const errorDetails = error.response?.data?.details;
+          const fullMessage = errorDetails ? `${errorMessage}: ${errorDetails}` : errorMessage;
+          message.error(fullMessage);
+          // 提交失败时，不改变订单状态
         } finally {
           setSubmitting(false);
         }

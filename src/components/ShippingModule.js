@@ -8,8 +8,8 @@ export default function ShippingModule({ data, onChange, disabled, errors }) {
     <div className="module-card">
       <h2 className="module-title">样品运送</h2>
       <Form layout="vertical">
-        <Form.Item 
-          label="运送方式" 
+        <Form.Item
+          label="运送方式"
           required
           validateStatus={errors?.shippingMethod ? 'error' : ''}
           help={errors?.shippingMethod}
@@ -19,36 +19,37 @@ export default function ShippingModule({ data, onChange, disabled, errors }) {
             onChange={(e) => onChange('shippingMethod', e.target.value)}
             disabled={disabled}
           >
-            <Radio value="自提">自提</Radio>
-            <Radio value="快递">快递</Radio>
+              <Radio value="快递">快递</Radio>
+              <Radio value="自取自送">自取自送</Radio>
+              <Radio value="联合分析，无需快递">联合分析，无需快递</Radio>
           </Radio.Group>
         </Form.Item>
 
         {data.shippingMethod === '快递' && (
           <>
             <div className="form-row">
-              <Form.Item 
-                label="快递公司及运单号" 
+              <Form.Item
+                label="快递公司及运单号"
                 className="form-item"
                 required
                 validateStatus={errors?.expressCompanyWaybill ? 'error' : ''}
                 help={errors?.expressCompanyWaybill}
               >
-                <Input 
+                <Input
                   value={data.expressCompanyWaybill}
                   onChange={(e) => onChange('expressCompanyWaybill', e.target.value)}
                   disabled={disabled}
                   placeholder="请输入快递公司及运单号"
                 />
               </Form.Item>
-              <Form.Item 
-                label="送样时间" 
+              <Form.Item
+                label="送样时间"
                 className="form-item"
                 required
                 validateStatus={errors?.shippingTime ? 'error' : ''}
                 help={errors?.shippingTime}
               >
-                <DatePicker 
+                <DatePicker
                   value={data.shippingTime ? dayjs(data.shippingTime) : null}
                   onChange={(date) => onChange('shippingTime', date ? date.toISOString() : null)}
                   disabled={disabled}

@@ -121,10 +121,10 @@ export async function searchFormData(uniqueId) {
 // 保存表单数据到钉钉宜搭
 export async function saveFormData(formData) {
   debugLog('saveFormData - 开始保存', { formData });
-  
+
   try {
     const accessToken = await getAccessToken();
-    
+
     const requestBody = {
       formUuid: YIDA_CONFIG.formUuid,
       systemToken: YIDA_CONFIG.systemToken,
@@ -132,9 +132,9 @@ export async function saveFormData(formData) {
       appType: YIDA_CONFIG.appType,
       formDataJson: JSON.stringify(formData)
     };
-    
+
     debugLog('saveFormData - 请求参数', requestBody);
-    
+
     const response = await axios.post(
       `${DINGTALK_API_BASE}/v1.0/yida/forms/instances`,
       requestBody,
@@ -145,9 +145,22 @@ export async function saveFormData(formData) {
         }
       }
     );
-    
+
     debugLog('saveFormData - 响应数据', response.data);
-    
+
+    // 检查是否有明确的错误标志
+    if (response.data && response.data.success === false) {
+      const errorMsg = response.data.message || response.data.errorMsg || '未知错误';
+      throw new Error(`钉钉保存失败: ${errorMsg}`);
+    }
+
+    // 如果响应中有 code 字段且不为 0 或 'ok'，也表示失败
+    if (response.data && response.data.code !== undefined &&
+        response.data.code !== 0 && response.data.code !== 'ok') {
+      const errorMsg = response.data.message || response.data.errorMsg || `钉钉返回错误代码: ${response.data.code}`;
+      throw new Error(`钉钉保存失败: ${errorMsg}`);
+    }
+
     return response.data;
   } catch (error) {
     debugLog('saveFormData - 错误', {
@@ -163,10 +176,10 @@ export async function saveFormData(formData) {
 // 更新表单数据到钉钉宜搭
 export async function updateFormData(formInstanceId, formData) {
   debugLog('updateFormData - 开始更新', { formInstanceId, formData });
-  
+
   try {
     const accessToken = await getAccessToken();
-    
+
     const requestBody = {
       formUuid: YIDA_CONFIG.formUuid,
       systemToken: YIDA_CONFIG.systemToken,
@@ -176,9 +189,9 @@ export async function updateFormData(formInstanceId, formData) {
       updateFormDataJson: JSON.stringify(formData),
       useAlias: true
     };
-    
+
     debugLog('updateFormData - 请求参数', requestBody);
-    
+
     const response = await axios.put(
       `${DINGTALK_API_BASE}/v2.0/yida/forms/instances`,
       requestBody,
@@ -189,9 +202,24 @@ export async function updateFormData(formInstanceId, formData) {
         }
       }
     );
-    
+
     debugLog('updateFormData - 响应数据', response.data);
-    
+
+    // 钉钉宜搭更新成功时，HTTP 状态码为 200 就表示成功
+    // 响应体可能为 {} 或包含其他字段，只要没有异常就认为成功
+    // 检查是否有明确的错误标志
+    if (response.data && response.data.success === false) {
+      const errorMsg = response.data.message || response.data.errorMsg || '未知错误';
+      throw new Error(`钉钉更新失败: ${errorMsg}`);
+    }
+
+    // 如果响应中有 code 字段且不为 0 或 'ok'，也表示失败
+    if (response.data && response.data.code !== undefined &&
+        response.data.code !== 0 && response.data.code !== 'ok') {
+      const errorMsg = response.data.message || response.data.errorMsg || `钉钉返回错误代码: ${response.data.code}`;
+      throw new Error(`钉钉更新失败: ${errorMsg}`);
+    }
+
     return response.data;
   } catch (error) {
     debugLog('updateFormData - 错误', {
@@ -276,10 +304,16 @@ export function convertToYidaFormat(localData) {
     SampleType: localData.sampleType || '',
     RemainingSampleProcessingMethod: localData.remainingSampleHandling,
     ModeOfDelivery: localData.shippingMethod,
-    // SampleDeliveryTime: localData.shippingTime,
+    SampleDeliveryTime: timeFormat(localData.shippingTime),
+    IsBioinformaticsAnalysis: localData.IsBioinformaticsAnalysis
   };
   
   debugLog('convertToYidaFormat - 转换结果', result);
   return result;
 }
 
+function timeFormat(dateStr) {
+  const date = new Date(dateStr);
+// 自动根据你电脑的时区转换
+  return date.getTime()
+}

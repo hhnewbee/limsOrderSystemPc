@@ -170,10 +170,20 @@ export async function POST(request, { params }) {
     if (order.form_instance_id) {
       try {
         const yidaData = convertToYidaFormat(data);
-        await updateFormData(order.form_instance_id, yidaData);
+        console.log('[API] 准备提交到钉钉:', { formInstanceId: order.form_instance_id, data: yidaData });
+
+        const yidaResponse = await updateFormData(order.form_instance_id, yidaData);
+
+        console.log('[API] 钉钉返回响应:', yidaResponse);
+
+        // 钉钉 API 成功响应会返回 200，错误会在 updateFormData 中抛出异常
       } catch (yidaError) {
-        console.error('提交到钉钉宜搭失败:', yidaError);
-        // 钉钉提交失败不影响本地提交
+        await connection.rollback();
+        console.error('[API] 提交到钉钉宜搭失败:', yidaError.message || yidaError);
+        return NextResponse.json({
+          error: '钉钉提交失败，请重试',
+          details: yidaError.message || '未知错误'
+        }, { status: 500 });
       }
     }
 
