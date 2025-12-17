@@ -62,7 +62,8 @@ export async function initDatabase() {
         project_type VARCHAR(100) COMMENT '项目类型',
         
         -- 状态
-        status ENUM('draft', 'submitted') DEFAULT 'draft' COMMENT '状态',
+        status ENUM('draft', 'submitted') DEFAULT 'draft' COMMENT '本地状态',
+        table_status VARCHAR(100) COMMENT '钉钉表单状态（如：客户编辑中、客户已提交、客户修改中等）',
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
         submitted_at TIMESTAMP NULL COMMENT '提交时间',

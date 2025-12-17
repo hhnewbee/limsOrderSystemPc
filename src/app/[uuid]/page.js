@@ -311,7 +311,13 @@ export default function OrderPage() {
           const response = await axios.post(`/api/order/${uuid}/submit`, orderData);
           console.log('[前端] 提交成功:', response.data);
           message.success('提交成功');
-          setOrderData(prev => ({ ...prev, status: 'submitted' }));
+
+          // 更新订单状态和表单状态
+          setOrderData(prev => ({
+            ...prev,
+            status: 'submitted',
+            tableStatus: response.data.tableStatus || prev.tableStatus // 更新钉钉表单状态
+          }));
           setHasUnsavedChanges(false);
         } catch (error) {
           console.error('[前端] 提交失败:', error);
@@ -347,12 +353,18 @@ export default function OrderPage() {
     );
   }
 
-  const isSubmitted = orderData.status === 'submitted';
+  // 判断表单是否可编辑
+  // 可编辑状态：客户编辑中、客户修改中
+  const editableTableStatus = ['客户编辑中', '客户修改中'];
+  const isEditable = editableTableStatus.includes(orderData.tableStatus);
+
+  // 显示"已下单"标记的条件：非可编辑状态且不是草稿
+  const isSubmitted = !isEditable && orderData.status === 'submitted';
 
   return (
     <div className="page-container">
       <h1 style={{ textAlign: 'center', marginBottom: 24 }}>LIMS客户端下单系统</h1>
-      
+
       {isSubmitted && (
         <div className="status-submitted">
           ✓ 已下单
@@ -360,32 +372,32 @@ export default function OrderPage() {
       )}
 
       <CustomerInfoModule data={orderData} />
-      
-      <SampleInfoModule 
-        data={orderData} 
-        onChange={updateFormData} 
-        disabled={isSubmitted}
-        errors={errors}
-      />
-      
-      <ShippingModule 
-        data={orderData} 
-        onChange={updateFormData} 
-        disabled={isSubmitted}
-        errors={errors}
-      />
-      
-      <ProjectInfoModule data={orderData} />
-      
-      <SampleAnalysisModule 
-        data={orderData} 
-        onChange={updateFormData} 
-        disabled={isSubmitted}
+
+      <SampleInfoModule
+        data={orderData}
+        onChange={updateFormData}
+        disabled={!isEditable}
         errors={errors}
       />
 
-      {!isSubmitted && (
-        <SubmitArea 
+      <ShippingModule
+        data={orderData}
+        onChange={updateFormData}
+        disabled={!isEditable}
+        errors={errors}
+      />
+
+      <ProjectInfoModule data={orderData} />
+
+      <SampleAnalysisModule
+        data={orderData}
+        onChange={updateFormData}
+        disabled={!isEditable}
+        errors={errors}
+      />
+
+      {isEditable && (
+        <SubmitArea
           onSave={handleSave}
           onSubmit={handleSubmit}
           saving={saving}

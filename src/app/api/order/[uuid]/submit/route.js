@@ -167,6 +167,7 @@ export async function POST(request, { params }) {
     }
 
     // 提交到钉钉宜搭（不包含样品分析模块数据）
+    const tableStatus = '客户已提交'; // 提交成功后的状态
     if (order.form_instance_id) {
       try {
         const yidaData = convertToYidaFormat(data);
@@ -187,9 +188,19 @@ export async function POST(request, { params }) {
       }
     }
 
+    // 更新数据库中的 table_status
+    await connection.execute(
+      'UPDATE orders SET table_status = ? WHERE uuid = ?',
+      [tableStatus, uuid]
+    );
+
     await connection.commit();
 
-    return NextResponse.json({ success: true, message: '提交成功' });
+    return NextResponse.json({
+      success: true,
+      message: '提交成功',
+      tableStatus // 返回新的表单状态
+    });
   } catch (error) {
     await connection.rollback();
     console.error('提交订单失败:', error);

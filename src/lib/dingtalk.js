@@ -235,7 +235,7 @@ export async function updateFormData(formInstanceId, formData) {
 // 解析钉钉宜搭返回的数据格式
 export function parseYidaFormData(yidaData) {
   debugLog('parseYidaFormData - 输入数据', yidaData);
-  
+
   if (!yidaData || !yidaData.data || yidaData.data.length === 0) {
     debugLog('parseYidaFormData - 无数据', null);
     return null;
@@ -243,11 +243,13 @@ export function parseYidaFormData(yidaData) {
 
   const formData = yidaData.data[0].formData;
   const formInstanceId = yidaData.data[0].formInstanceId;
+  const tableStatus = yidaData.data[0].tableStatus; // 获取钉钉表单状态
 
-  debugLog('parseYidaFormData - 表单数据', { formInstanceId, formData });
+  debugLog('parseYidaFormData - 表单数据', { formInstanceId, formData, tableStatus });
 
   const result = {
     formInstanceId,
+    tableStatus, // 添加表单状态
     // 客户信息
     customerUnit: formData.CustomerUnit || '',
     customerName: formData.CustomerName || '',
@@ -255,7 +257,7 @@ export function parseYidaFormData(yidaData) {
     departmentDirector: formData.DepartmentDirectorPI || '',
     customerPhone: formData.CustomerMobilePhone || '',
     customerEmail: formData.CustomerMailbox || '',
-    
+
     // 样品信息
     serviceType: formData.ServiceTypeName || '',
     productLine: formData.ServiceTypeOther || '',
@@ -270,12 +272,12 @@ export function parseYidaFormData(yidaData) {
     samplePreprocessing: formData.SamplePreprocessingMethod || '',
     remainingSampleHandling: '',
     needBioinformaticsAnalysis: false,
-    
+
     // 样品运送
     shippingMethod: '',
     expressCompanyWaybill: formData.ExpressCompanyAndWaybillNumber || '',
     shippingTime: null,
-    
+
     // 项目信息
     projectNumber: formData.UniqueIdentification || '',
     unitPrice: formData.UnitPriceOfTestingServiceFee ? parseFloat(formData.UnitPriceOfTestingServiceFee) : null,
@@ -305,7 +307,8 @@ export function convertToYidaFormat(localData) {
     RemainingSampleProcessingMethod: localData.remainingSampleHandling,
     ModeOfDelivery: localData.shippingMethod,
     SampleDeliveryTime: timeFormat(localData.shippingTime),
-    IsBioinformaticsAnalysis: localData.IsBioinformaticsAnalysis
+    IsBioinformaticsAnalysis: localData.IsBioinformaticsAnalysis,
+    TableStatus: "客户已提交",
   };
   
   debugLog('convertToYidaFormat - 转换结果', result);

@@ -57,8 +57,8 @@ export async function GET(request, { params }) {
             preservation_medium, sample_preprocessing, remaining_sample_handling,
             need_bioinformatics_analysis, shipping_method, express_company_waybill,
             shipping_time, project_number, unit_price, other_expenses, salesman_name,
-            salesman_contact, technical_support_name, project_type, status
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft')`,
+            salesman_contact, technical_support_name, project_type, status, table_status
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)`,
           [
             uuid, parsedData.formInstanceId, parsedData.customerUnit, parsedData.customerName,
             parsedData.department, parsedData.departmentDirector, parsedData.customerPhone,
@@ -70,7 +70,7 @@ export async function GET(request, { params }) {
             parsedData.shippingMethod, parsedData.expressCompanyWaybill, parsedData.shippingTime,
             parsedData.projectNumber, parsedData.unitPrice, parsedData.otherExpenses,
             parsedData.salesmanName, parsedData.salesmanContact, parsedData.technicalSupportName,
-            parsedData.projectType
+            parsedData.projectType, parsedData.tableStatus
           ]
         );
 
@@ -141,6 +141,7 @@ export async function GET(request, { params }) {
           technicalSupportName: order.technical_support_name,
           projectType: order.project_type,
           status: order.status,
+          tableStatus: order.table_status,
           sampleList: sampleList.map(s => ({
             id: s.id,
             sequenceNo: s.sequence_no,
