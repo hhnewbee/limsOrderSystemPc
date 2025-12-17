@@ -2,6 +2,7 @@
 
 import { Form, Radio, Input, DatePicker } from 'antd';
 import dayjs from 'dayjs';
+import { ReadOnlyText } from './ReadOnlyField';
 
 export default function ShippingModule({ data, onChange, disabled, errors }) {
   return (
@@ -14,15 +15,19 @@ export default function ShippingModule({ data, onChange, disabled, errors }) {
           validateStatus={errors?.shippingMethod ? 'error' : ''}
           help={errors?.shippingMethod}
         >
-          <Radio.Group
-            value={data.shippingMethod}
-            onChange={(e) => onChange('shippingMethod', e.target.value)}
-            disabled={disabled}
-          >
+          {disabled ? (
+            <ReadOnlyText value={data.shippingMethod} />
+          ) : (
+            <Radio.Group
+              value={data.shippingMethod}
+              onChange={(e) => onChange('shippingMethod', e.target.value)}
+              disabled={disabled}
+            >
               <Radio value="快递">快递</Radio>
               <Radio value="自取自送">自取自送</Radio>
               <Radio value="联合分析，无需快递">联合分析，无需快递</Radio>
-          </Radio.Group>
+            </Radio.Group>
+          )}
         </Form.Item>
 
         {data.shippingMethod === '快递' && (
@@ -35,12 +40,16 @@ export default function ShippingModule({ data, onChange, disabled, errors }) {
                 validateStatus={errors?.expressCompanyWaybill ? 'error' : ''}
                 help={errors?.expressCompanyWaybill}
               >
-                <Input
-                  value={data.expressCompanyWaybill}
-                  onChange={(e) => onChange('expressCompanyWaybill', e.target.value)}
-                  disabled={disabled}
-                  placeholder="请输入快递公司及运单号"
-                />
+                {disabled ? (
+                  <ReadOnlyText value={data.expressCompanyWaybill} />
+                ) : (
+                  <Input
+                    value={data.expressCompanyWaybill}
+                    onChange={(e) => onChange('expressCompanyWaybill', e.target.value)}
+                    disabled={disabled}
+                    placeholder="请输入快递公司及运单号"
+                  />
+                )}
               </Form.Item>
               <Form.Item
                 label="送样时间"
@@ -49,14 +58,18 @@ export default function ShippingModule({ data, onChange, disabled, errors }) {
                 validateStatus={errors?.shippingTime ? 'error' : ''}
                 help={errors?.shippingTime}
               >
-                <DatePicker
-                  value={data.shippingTime ? dayjs(data.shippingTime) : null}
-                  onChange={(date) => onChange('shippingTime', date ? date.toISOString() : null)}
-                  disabled={disabled}
-                  style={{ width: '100%' }}
-                  placeholder="请选择送样时间"
-                  showTime
-                />
+                {disabled ? (
+                  <ReadOnlyText value={data.shippingTime ? dayjs(data.shippingTime).format('YYYY-MM-DD HH:mm:ss') : ''} />
+                ) : (
+                  <DatePicker
+                    value={data.shippingTime ? dayjs(data.shippingTime) : null}
+                    onChange={(date) => onChange('shippingTime', date ? date.toISOString() : null)}
+                    disabled={disabled}
+                    style={{ width: '100%' }}
+                    placeholder="请选择送样时间"
+                    showTime
+                  />
+                )}
               </Form.Item>
             </div>
 

@@ -51,32 +51,38 @@ export default function PairwiseComparisonTable({ data, onChange, disabled, grou
       dataIndex: 'treatmentGroup',
       key: 'treatmentGroup',
       width: 180,
-      render: (value, _, index) => (
-        <Select
-          value={value}
-          onChange={(val) => handleCellChange(index, 'treatmentGroup', val)}
-          disabled={disabled}
-          options={groupOptions}
-          style={{ width: '100%' }}
-          placeholder="请选择处理组"
-        />
-      )
+      render: (value, _, index) =>
+        disabled ? (
+          <div className="readonly-text">{value || '-'}</div>
+        ) : (
+          <Select
+            value={value}
+            onChange={(val) => handleCellChange(index, 'treatmentGroup', val)}
+            disabled={disabled}
+            options={groupOptions}
+            style={{ width: '100%' }}
+            placeholder="请选择处理组"
+          />
+        )
     },
     {
       title: '对照组（分母样本）',
       dataIndex: 'controlGroup',
       key: 'controlGroup',
       width: 180,
-      render: (value, _, index) => (
-        <Select
-          value={value}
-          onChange={(val) => handleCellChange(index, 'controlGroup', val)}
-          disabled={disabled}
-          options={groupOptions}
-          style={{ width: '100%' }}
-          placeholder="请选择对照组"
-        />
-      )
+      render: (value, _, index) =>
+        disabled ? (
+          <div className="readonly-text">{value || '-'}</div>
+        ) : (
+          <Select
+            value={value}
+            onChange={(val) => handleCellChange(index, 'controlGroup', val)}
+            disabled={disabled}
+            options={groupOptions}
+            style={{ width: '100%' }}
+            placeholder="请选择对照组"
+          />
+        )
     },
     {
       title: '比较组方案（处理组 vs 对照组）',
@@ -84,7 +90,7 @@ export default function PairwiseComparisonTable({ data, onChange, disabled, grou
       key: 'comparisonScheme',
       width: 200,
       render: (value) => (
-        <Input value={value} disabled className="readonly-field" />
+        <div className="readonly-text">{value || '-'}</div>
       )
     },
     {
@@ -109,7 +115,7 @@ export default function PairwiseComparisonTable({ data, onChange, disabled, grou
       <h3 style={{ marginBottom: 12 }}>两两比较</h3>
       
       <div className="comparison-note">
-        <p>1、按"分组名称"填写。</p>
+        <p>1、按&quot;分组名称&quot;填写。</p>
         <p>2、请仔细核对处理组、对照组，切勿颠倒。</p>
       </div>
 

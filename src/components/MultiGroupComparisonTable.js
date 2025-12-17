@@ -40,17 +40,22 @@ export default function MultiGroupComparisonTable({ data, onChange, disabled, gr
       title: '差异分析比较组',
       dataIndex: 'comparisonGroups',
       key: 'comparisonGroups',
-      render: (value, _, index) => (
-        <Select
-          mode="multiple"
-          value={value || []}
-          onChange={(val) => handleGroupsChange(index, val)}
-          disabled={disabled}
-          options={groupOptions}
-          style={{ width: '100%' }}
-          placeholder="请选择比较组（可多选）"
-        />
-      )
+      render: (value, _, index) =>
+        disabled ? (
+          <div className="readonly-text">
+            {(value || []).length > 0 ? (value.join(', ')) : '-'}
+          </div>
+        ) : (
+          <Select
+            mode="multiple"
+            value={value || []}
+            onChange={(val) => handleGroupsChange(index, val)}
+            disabled={disabled}
+            options={groupOptions}
+            style={{ width: '100%' }}
+            placeholder="请选择比较组（可多选）"
+          />
+        )
     },
     {
       title: '比较方案',
@@ -60,7 +65,7 @@ export default function MultiGroupComparisonTable({ data, onChange, disabled, gr
       render: (_, record) => {
         const groups = record.comparisonGroups || [];
         if (groups.length < 2) return '-';
-        return groups.join(' vs ');
+        return <div className="readonly-text">{groups.join(' vs ')}</div>;
       }
     },
     {
@@ -85,7 +90,7 @@ export default function MultiGroupComparisonTable({ data, onChange, disabled, gr
       <h3 style={{ marginBottom: 12 }}>多组比较</h3>
       
       <div className="comparison-note">
-        <p>1、按"分组名称"填写。</p>
+        <p>1、按&quot;分组名称&quot;填写。</p>
         <p>2、多组比较的顺序建议按时间或疾病等级依次排序。</p>
       </div>
 

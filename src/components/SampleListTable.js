@@ -11,8 +11,8 @@ const DETECTION_OPTIONS = [
   { label: '暂存', value: '暂存' }
 ];
 
-const ROW_HEIGHT = 58;
-const TABLE_HEIGHT = 400;
+const ROW_HEIGHT = 48;
+const TABLE_HEIGHT = 360;
 
 // 表格列配置
 const getColumns = (needBioinformaticsAnalysis) => {
@@ -52,6 +52,13 @@ const InputWithError = ({ value, onChange, disabled, error, size = "small" }) =>
   </div>
 );
 
+// 只读文本显示组件
+const ReadOnlyText = ({ value, className = "" }) => (
+  <div className={`readonly-text ${className}`}>
+    {value || '-'}
+  </div>
+);
+
 // 将 Row 组件提取到外部，避免每次渲染时重新创建
 const TableRow = memo(function TableRow({ index, style, data: itemData }) {
   const { items, errors, disabled, needBioinformaticsAnalysis, onCellChange, onDeleteRow, onCopyRow } = itemData;
@@ -63,61 +70,85 @@ const TableRow = memo(function TableRow({ index, style, data: itemData }) {
       <div className="table-cell" style={{ flex: '0 0 60px', width: 60 }}>
         {index + 1}
       </div>
-      <div className="table-cell" style={{ flex: '0 0 120px', width: 120, alignItems: 'flex-start', paddingTop: 10 }}>
-        <InputWithError
-          value={item.sampleName}
-          onChange={(e) => onCellChange(index, 'sampleName', e.target.value)}
-          disabled={disabled}
-          error={rowErrors.sampleName}
-        />
+      <div className="table-cell" style={{ flex: '0 0 120px', width: 120, alignItems: 'flex-start', paddingTop: 6 }}>
+        {disabled ? (
+          <ReadOnlyText value={item.sampleName} />
+        ) : (
+          <InputWithError
+            value={item.sampleName}
+            onChange={(e) => onCellChange(index, 'sampleName', e.target.value)}
+            disabled={disabled}
+            error={rowErrors.sampleName}
+          />
+        )}
       </div>
       {needBioinformaticsAnalysis && (
         <>
-          <div className="table-cell" style={{ flex: '0 0 120px', width: 120, alignItems: 'flex-start', paddingTop: 10 }}>
-            <InputWithError
-              value={item.analysisName}
-              onChange={(e) => onCellChange(index, 'analysisName', e.target.value)}
-              disabled={disabled}
-              error={rowErrors.analysisName}
-            />
+          <div className="table-cell" style={{ flex: '0 0 120px', width: 120, alignItems: 'flex-start', paddingTop: 6 }}>
+            {disabled ? (
+              <ReadOnlyText value={item.analysisName} />
+            ) : (
+              <InputWithError
+                value={item.analysisName}
+                onChange={(e) => onCellChange(index, 'analysisName', e.target.value)}
+                disabled={disabled}
+                error={rowErrors.analysisName}
+              />
+            )}
           </div>
-          <div className="table-cell" style={{ flex: '0 0 120px', width: 120, alignItems: 'flex-start', paddingTop: 10 }}>
-            <InputWithError
-              value={item.groupName}
-              onChange={(e) => onCellChange(index, 'groupName', e.target.value)}
-              disabled={disabled}
-              error={rowErrors.groupName}
-            />
+          <div className="table-cell" style={{ flex: '0 0 120px', width: 120, alignItems: 'flex-start', paddingTop: 6 }}>
+            {disabled ? (
+              <ReadOnlyText value={item.groupName} />
+            ) : (
+              <InputWithError
+                value={item.groupName}
+                onChange={(e) => onCellChange(index, 'groupName', e.target.value)}
+                disabled={disabled}
+                error={rowErrors.groupName}
+              />
+            )}
           </div>
         </>
       )}
       <div className="table-cell" style={{ flex: '0 0 100px', width: 100 }}>
-        <Select
-          value={item.detectionOrStorage}
-          onChange={(value) => onCellChange(index, 'detectionOrStorage', value)}
-          disabled={disabled}
-          size="small"
-          options={DETECTION_OPTIONS}
-          style={{ width: '100%' }}
-        />
+        {disabled ? (
+          <ReadOnlyText value={item.detectionOrStorage} />
+        ) : (
+          <Select
+            value={item.detectionOrStorage}
+            onChange={(value) => onCellChange(index, 'detectionOrStorage', value)}
+            disabled={disabled}
+            size="small"
+            options={DETECTION_OPTIONS}
+            style={{ width: '100%' }}
+          />
+        )}
       </div>
       <div className="table-cell" style={{ flex: '0 0 80px', width: 80 }}>
-        <InputNumber
-          value={item.sampleTubeCount}
-          onChange={(value) => onCellChange(index, 'sampleTubeCount', value)}
-          disabled={disabled}
-          size="small"
-          min={1}
-          style={{ width: '100%' }}
-        />
+        {disabled ? (
+          <ReadOnlyText value={item.sampleTubeCount} />
+        ) : (
+          <InputNumber
+            value={item.sampleTubeCount}
+            onChange={(value) => onCellChange(index, 'sampleTubeCount', value)}
+            disabled={disabled}
+            size="small"
+            min={1}
+            style={{ width: '100%' }}
+          />
+        )}
       </div>
       <div className="table-cell" style={{ flex: 1, minWidth: 200 }}>
-        <Input
-          value={item.experimentDescription}
-          onChange={(e) => onCellChange(index, 'experimentDescription', e.target.value)}
-          disabled={disabled}
-          size="small"
-        />
+        {disabled ? (
+          <ReadOnlyText value={item.experimentDescription} />
+        ) : (
+          <Input
+            value={item.experimentDescription}
+            onChange={(e) => onCellChange(index, 'experimentDescription', e.target.value)}
+            disabled={disabled}
+            size="small"
+          />
+        )}
       </div>
       <div className="table-cell" style={{ flex: '0 0 80px', width: 80, justifyContent: 'center', gap: 4 }}>
         {!disabled && (
@@ -315,13 +346,13 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
   };
 
   return (
-    <div style={{ marginBottom: 24 }}>
-      <h3 style={{ marginBottom: 12 }}>样本清单</h3>
-      
+    <div style={{ marginBottom: 16 }}>
+      <h3 style={{ marginBottom: 8, fontSize: '15px', fontWeight: 600 }}>样本清单</h3>
+
       {/* 填写要求说明 */}
-      <div className="comparison-note" style={{ marginBottom: 16 }}>
-        <p>1. "样本名称"应与送样的管子上完全一致，便于核对样本。名称须具有唯一性，不能出现中文字符、特殊字符（如￥、$、&、@、%等），字符长度在10个以内。</p>
-        <p>2. "分析名称"为生信分析时样本所用名称。"分析名称"和"分组名称"请采用字母、数字和下划线 (即_) 表示(不能有空格和中横线，点号)，长度控制在8个字符以内，首字符必须为字母。</p>
+      <div className="comparison-note" style={{ marginBottom: 12 }}>
+        <p>1. &quot;样本名称&quot;应与送样的管子上完全一致，便于核对样本。名称须具有唯一性，不能出现中文字符、特殊字符（如￥、$、&、@、%等），字符长度在10个以内。</p>
+        <p>2. &quot;分析名称&quot;为生信分析时样本所用名称。&quot;分析名称&quot;和&quot;分组名称&quot;请采用字母、数字和下划线 (即_) 表示(不能有空格和中横线，点号)，长度控制在8个字符以内，首字符必须为字母。</p>
       </div>
 
       {/* 工具栏 */}
@@ -405,7 +436,7 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
             borderTop: '1px dashed #e8e8e8'
           }}>
             <div style={{ fontSize: 14, marginBottom: 8 }}>暂无数据</div>
-            <div style={{ fontSize: 12, color: '#bbb' }}>请点击"添加行"或"导入"添加样本</div>
+            <div style={{ fontSize: 12, color: '#bbb' }}>请点击&quot;添加行&quot;或&quot;导入&quot;添加样本</div>
           </div>
         )}
       </div>
