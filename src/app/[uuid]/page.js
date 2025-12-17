@@ -380,14 +380,14 @@ export default function OrderPage() {
         errors={errors}
       />
 
-      <ShippingModule
-        data={orderData}
-        onChange={updateFormData}
-        disabled={!isEditable}
-        errors={errors}
-      />
-
       <ProjectInfoModule data={orderData} />
+
+      <ShippingModule
+          data={orderData}
+          onChange={updateFormData}
+          disabled={!isEditable}
+          errors={errors}
+      />
 
       <SampleAnalysisModule
         data={orderData}
