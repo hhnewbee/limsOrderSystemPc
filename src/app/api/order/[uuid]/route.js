@@ -47,37 +47,69 @@ export async function GET(request, { params }) {
           await connection.execute('DELETE FROM orders WHERE uuid = ?', [uuid]);
         }
 
-        // 保存到数据库
-        const [result] = await connection.execute(
-          `INSERT INTO orders (
-            uuid, form_instance_id, customer_unit, customer_name, department,
-            department_director, customer_phone, customer_email, service_type,
-            product_line, special_instructions, species_name, species_latin_name,
-            sample_type, sample_type_detail, detection_quantity, cell_count,
-            preservation_medium, sample_preprocessing, remaining_sample_handling,
-            need_bioinformatics_analysis, shipping_method, express_company_waybill,
-            shipping_time, project_number, unit_price, other_expenses, salesman_name,
-            salesman_contact, technical_support_name, project_type, status, table_status
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'draft', ?)`,
-          [
-            uuid, parsedData.formInstanceId, parsedData.customerUnit, parsedData.customerName,
-            parsedData.department, parsedData.departmentDirector, parsedData.customerPhone,
-            parsedData.customerEmail, parsedData.serviceType, parsedData.productLine,
-            parsedData.specialInstructions, parsedData.speciesName, parsedData.speciesLatinName,
-            parsedData.sampleType, parsedData.sampleTypeDetail, parsedData.detectionQuantity,
-            parsedData.cellCount, parsedData.preservationMedium, parsedData.samplePreprocessing,
-            parsedData.remainingSampleHandling, parsedData.needBioinformaticsAnalysis ? 1 : 0,
-            parsedData.shippingMethod, parsedData.expressCompanyWaybill, parsedData.shippingTime,
-            parsedData.projectNumber, parsedData.unitPrice, parsedData.otherExpenses,
-            parsedData.salesmanName, parsedData.salesmanContact, parsedData.technicalSupportName,
-            parsedData.projectType, parsedData.tableStatus
-          ]
-        );
+        // 1. 定义数据库字段名与 parsedData 键名的映射关系
+        const fieldMapping = [
+          { db: 'uuid', val: uuid },
+          { db: 'form_instance_id', val: parsedData.formInstanceId },
+          { db: 'customer_unit', val: parsedData.customerUnit },
+          { db: 'customer_name', val: parsedData.customerName },
+          { db: 'department', val: parsedData.department },
+          { db: 'department_director', val: parsedData.departmentDirector },
+          { db: 'customer_phone', val: parsedData.customerPhone },
+          { db: 'customer_email', val: parsedData.customerEmail },
+          { db: 'service_type', val: parsedData.serviceType },
+          { db: 'product_line', val: parsedData.productLine },
+          { db: 'special_instructions', val: parsedData.specialInstructions },
+          { db: 'species_name', val: parsedData.speciesName },
+          { db: 'species_latin_name', val: parsedData.speciesLatinName },
+          { db: 'sample_type', val: parsedData.sampleType },
+          { db: 'sample_type_detail', val: parsedData.sampleTypeDetail },
+          { db: 'detection_quantity', val: parsedData.detectionQuantity },
+          { db: 'cell_count', val: parsedData.cellCount },
+          { db: 'preservation_medium', val: parsedData.preservationMedium },
+          { db: 'sample_preprocessing', val: parsedData.samplePreprocessing },
+          { db: 'remaining_sample_handling', val: parsedData.remainingSampleHandling },
+          { db: 'need_bioinformatics_analysis', val: parsedData.needBioinformaticsAnalysis ? 1 : 0 },
+          { db: 'shipping_method', val: parsedData.shippingMethod },
+          { db: 'express_company_waybill', val: parsedData.expressCompanyWaybill },
+          { db: 'shipping_time', val: parsedData.shippingTime },
+          { db: 'project_number', val: parsedData.projectNumber },
+          { db: 'unit_price', val: parsedData.unitPrice },
+          { db: 'other_expenses', val: parsedData.otherExpenses },
+          { db: 'salesman_name', val: parsedData.salesmanName },
+          { db: 'salesman_contact', val: parsedData.salesmanContact },
+          { db: 'technical_support_name', val: parsedData.technicalSupportName },
+          { db: 'project_type', val: parsedData.projectType },
+          { db: 'status', val: 'draft' }, // 硬编码状态
+          { db: 'table_status', val: parsedData.tableStatus }
+        ];
 
-        console.log('[API] 数据已保存到数据库，ID:', result.insertId);
+        // 2. 自动拆分为字段名数组和值数组
+        const dbFields = fieldMapping.map(m => m.db);
+        const dbValues = fieldMapping.map(m => (m.val === undefined ? null : m.val));
+
+        // 3. 构建 SQL：此时 dbFields.length 必然等于 dbValues.length
+        const placeholders = dbFields.map(() => '?').join(', ');
+        const sql = `INSERT INTO orders (${dbFields.join(', ')}) VALUES (${placeholders})`;
+
+        console.log(`[API] 准备插入数据: 字段数(${dbFields.length}), 参数数(${dbValues.length})`);
+
+        let insertId;
+
+        try {
+          const [result] = await connection.execute(sql, dbValues);
+          insertId = result.insertId;
+          console.log('[API] 数据库插入成功，ID:', insertId);
+        } catch (dbError) {
+          console.error('[API] 数据库执行报错:', dbError.message);
+          console.error('[API] 报错 SQL:', sql);
+          throw dbError; // 抛出异常由外层 catch 统一处理
+        }
+
+        console.log('[API] 数据已保存到数据库，ID:', insertId);
 
         orderData = {
-          id: result.insertId,
+          id: insertId,
           uuid,
           ...parsedData,
           status: 'draft',
@@ -88,7 +120,7 @@ export async function GET(request, { params }) {
       } else {
         // 从数据库获取完整数据
         const order = orders[0];
-        
+
         // 获取样本清单
         const [sampleList] = await connection.execute(
           'SELECT * FROM sample_list WHERE order_id = ? ORDER BY sequence_no',
