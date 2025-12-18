@@ -21,7 +21,7 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
             // 2. 检查组名是否有变化
             if (validGroups.length !== item.groups.length) {
                 hasChanges = true;
-                // 3. 如果有变化，重新生成 comparisonName (例如: A vs B)
+                // 3. 如果有变化，重新生成 comparisonName
                 const newName = validGroups.length > 0 ? validGroups.join(' vs ') : '';
                 return { ...item, groups: validGroups, comparisonName: newName };
             }
@@ -44,7 +44,7 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
         message.success('已删除行');
     }, [data, onChange]);
 
-    // 全局按键监听
+    // 全局按键监听 (Delete / Backspace)
     useEffect(() => {
         const handleGlobalKeyDown = (e) => {
             if (selectedRowIndex === null || disabled) return;
@@ -67,15 +67,12 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
         }
     };
 
-    // --- 核心修改：数据变更处理 ---
     const handleCellChange = useCallback((index, field, value) => {
         const newData = [...data];
         let currentRow = { ...newData[index], [field]: value };
 
         // 如果修改的是“组别选择”，自动生成“比较方案名称”
         if (field === 'groups') {
-            // value 是一个数组，例如 ['C', 'A', 'B']
-            // 自动拼接为 "C vs A vs B"
             if (value && value.length > 0) {
                 currentRow.comparisonName = value.join(' vs ');
             } else {
@@ -98,7 +95,8 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
     return (
         <div className={styles.container}>
             <div className={styles.headerTitle}>
-                <h3>多组比较 / 韦恩图分析</h3>
+                {/* 修改标题 */}
+                <h3>多组比较</h3>
                 {!disabled && (
                     <Button
                         type="primary"
@@ -111,16 +109,15 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
                 )}
             </div>
 
+            {/* 修改提示文案 */}
             <div className={styles.instructionNote}>
-                <p>1. <b>操作说明</b>：在“差异分析比较组”中选择多个组，系统将自动生成比较方案（如 A vs B vs C）。</p>
-                <p>2. <b>快捷删除</b>：点击左侧序号选中行，按 <b>Backspace</b> 或 <b>Delete</b> 键删除。</p>
+                <p>1. 按&quot;分组名称&quot;填写。</p>
+                <p>2. 多组比较的顺序建议按时间或疾病等级依次排序。</p>
             </div>
 
             <div className={styles.tableHeader}>
                 <div className={styles.headerCell} style={{ flex: '0 0 60px' }}>序号</div>
-                {/* 交换位置：先选组 */}
                 <div className={styles.headerCell} style={{ flex: 2 }}>差异分析比较组 (多选) <span style={{color:'#ff4d4f', marginLeft:4}}>*</span></div>
-                {/* 后生成名称 */}
                 <div className={styles.headerCell} style={{ flex: 1 }}>比较方案 (自动生成)</div>
                 <div className={styles.headerCell} style={{ flex: '0 0 80px' }}>操作</div>
             </div>
@@ -163,9 +160,7 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
                                 <Input
                                     placeholder="自动生成"
                                     value={item.comparisonName}
-                                    // 只读属性
                                     readOnly
-                                    // 应用只读样式
                                     className={styles.readOnlyInput}
                                     disabled={disabled}
                                 />
