@@ -1,0 +1,141 @@
+// src/components/SampleListTable.module.scss
+
+.sampleTableContainer {
+  margin-bottom: 24px;
+  background: #fff;
+  border-radius: 8px;
+
+  h3 {
+    margin-bottom: 16px;
+    font-size: 18px;
+    font-weight: 600;
+    color: #1f1f1f;
+  }
+
+  // 说明文字区域
+  .comparisonNote {
+    margin-bottom: 20px;
+    padding: 16px;
+    background-color: #f0f7ff;
+    border: 1px solid #bae7ff;
+    border-radius: 8px;
+
+    p {
+      margin-bottom: 8px;
+      font-size: 14px;
+      color: #434343;
+      line-height: 1.6;
+      &:last-child { margin-bottom: 0; }
+    }
+  }
+
+  // 工具栏
+  .tableToolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 16px;
+
+    .tableActions {
+      display: flex;
+      gap: 12px;
+
+      :global(.ant-btn) {
+        height: 40px;
+        padding: 4px 20px;
+        font-size: 14px;
+        border-radius: 6px;
+      }
+    }
+
+    .dataCount {
+      font-size: 14px;
+      color: #8c8c8c;
+    }
+  }
+
+  // 虚拟表格容器
+  .virtualTableContainer {
+    border: 1px solid #d9d9d9;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #fff;
+
+    // 表头
+    .tableHeader {
+      display: flex;
+      background-color: #fafafa;
+      border-bottom: 1px solid #d9d9d9;
+      font-weight: 600;
+
+      .tableHeaderCell {
+        padding: 14px 12px;
+        font-size: 15px;
+        color: #262626;
+        display: flex;
+        align-items: center;
+        border-right: 1px solid #f0f0f0;
+        &:last-child { border-right: none; }
+      }
+    }
+
+    // 表体行
+    .tableRow {
+      display: flex;
+      border-bottom: 1px solid #f0f0f0;
+      background: #fff;
+      transition: background-color 0.2s; // 只过渡背景色，不过渡高度以免卡顿
+      align-items: flex-start; // 关键：顶对齐
+
+      &:hover {
+        background-color: #fafafa;
+      }
+
+      .tableCell {
+        // 关键：(行高60 - 输入框38) / 2 = 11px
+        // 保证在没有错误时，输入框看起来是垂直居中的
+        padding: 11px 12px;
+        display: flex;
+        flex-direction: column; // 关键：垂直排列（输入框在上，错误在下）
+        justify-content: flex-start;
+        border-right: 1px solid #f0f0f0;
+        height: 100%;
+        box-sizing: border-box;
+
+        &:last-child { border-right: none; }
+
+        // 覆盖 Antd 控件样式
+        :global(.ant-input),
+        :global(.ant-select-selector),
+        :global(.ant-input-number) {
+          height: 38px !important;
+          font-size: 15px !important;
+          border-radius: 4px;
+          width: 100%;
+          display: flex;
+          align-items: center;
+        }
+
+        :global(.ant-select-selection-item) {
+          line-height: 36px !important;
+        }
+      }
+    }
+  }
+
+  // 错误提示：位于文档流中，自然撑开高度
+  .cellErrorText {
+    color: #ff4d4f;
+    font-size: 13px;
+    line-height: 1.5;
+    margin-top: 4px;
+    font-weight: 500;
+    padding-left: 2px;
+    animation: fadeIn 0.3s ease-out;
+  }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-3px); }
+  to { opacity: 1; transform: translateY(0); }
+}

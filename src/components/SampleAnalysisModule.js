@@ -1,9 +1,9 @@
 'use client';
 
 import { useMemo } from 'react';
-import SampleListTable from './SampleListTable';
-import PairwiseComparisonTable from './PairwiseComparisonTable';
-import MultiGroupComparisonTable from './MultiGroupComparisonTable';
+import SampleListTable from '@/components/SampleListTable';
+import PairwiseComparisonTable from '@/components/PairwiseComparisonTable';
+import MultiGroupComparisonTable from '@/components/MultiGroupComparisonTable';
 
 export default function SampleAnalysisModule({ data, onChange, disabled, errors }) {
   // 从样本清单中提取分组名称
@@ -35,7 +35,7 @@ export default function SampleAnalysisModule({ data, onChange, disabled, errors 
   return (
     <div className="module-card">
       <h2 className="module-title">样品分析</h2>
-      
+
       {/* 样本清单 */}
       <SampleListTable
         data={data.sampleList || []}
