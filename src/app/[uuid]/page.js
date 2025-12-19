@@ -6,7 +6,7 @@ import { message, Spin, Modal } from 'antd';
 import axios from 'axios';
 import CustomerInfoModule from '@/components/CustomerInfoModule';
 import SampleInfoModule from '@/components/SampleInfoModule';
-import ShippingModule from '@/components/ShippingModule';
+import ShippingModule from '@/components/ShippingModule/ShippingModule';
 import ProjectInfoModule from '@/components/ProjectInfoModule';
 import SampleAnalysisModule from '@/components/SampleAnalysisModule';
 import SubmitArea from '@/components/SubmitArea';

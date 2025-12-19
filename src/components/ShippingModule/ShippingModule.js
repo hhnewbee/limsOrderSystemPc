@@ -2,7 +2,8 @@
 
 import { Form, Radio, Input, DatePicker } from 'antd';
 import dayjs from 'dayjs';
-import { ReadOnlyText } from './ReadOnlyField';
+import { ReadOnlyText } from '../ReadOnlyField';
+import styles from './ShippingModule.module.scss';
 
 export default function ShippingModule({ data, onChange, disabled, errors }) {
   return (
@@ -73,11 +74,15 @@ export default function ShippingModule({ data, onChange, disabled, errors }) {
               </Form.Item>
             </div>
 
-            <div className="shipping-info">
-              <p><strong>寄样说明：</strong></p>
-              <p>如需干冰寄样则省内寄送时保证有10kg干冰，省外寄送时保证有15kg干冰，（5kg/天）偏远地区请联系销售</p>
-              <p style={{ marginTop: 12 }}><strong>邮寄信息：</strong></p>
-              <p>广东省深圳市龙华区民治街道民康路北114号深圳市计量质量检测研究院2号楼2楼，收件人及联系电话请联系销售</p>
+            <div className={styles.shippingInfo}>
+              <div className={styles.left}>
+                <p><strong>寄样说明：</strong></p>
+                <p>如需干冰寄样则省内寄送时保证有10kg干冰，省外寄送时保证有15kg干冰，（5kg/天）偏远地区请联系销售</p>
+              </div>
+              <div>
+                <p><strong>邮寄信息：</strong></p>
+                <p>广东省深圳市龙华区民治街道民康路北114号深圳市计量质量检测研究院2号楼2楼，收件人及联系电话请联系销售</p>
+              </div>
             </div>
           </>
         )}

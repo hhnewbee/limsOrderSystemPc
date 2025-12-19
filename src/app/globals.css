@@ -253,20 +253,3 @@ body {
 .comparison-note p:last-child {
   margin-bottom: 0;
 }
-
-.shipping-info {
-  background-color: #f6f6f6;
-  padding: 16px;
-  border-radius: 4px;
-  margin-top: 16px;
-}
-
-.shipping-info p {
-  margin-bottom: 8px;
-  color: #666;
-}
-
-.shipping-info p:last-child {
-  margin-bottom: 0;
-}
-
