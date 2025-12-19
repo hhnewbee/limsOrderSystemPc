@@ -1,11 +1,12 @@
 'use client';
 
 import { Form, Input } from 'antd';
+import ModuleCard from "@/components/ModuleCard";
+import {ProjectOutlined} from "@ant-design/icons";
 
 export default function ProjectInfoModule({ data }) {
   return (
-    <div className="module-card">
-      <h2 className="module-title">项目信息</h2>
+    <ModuleCard title="项目信息" icon={<ProjectOutlined/>}>
       <Form layout="vertical">
         <div className="form-row">
           <Form.Item label="项目编号" className="form-item">
@@ -52,7 +53,7 @@ export default function ProjectInfoModule({ data }) {
           </Form.Item>
         </div>
       </Form>
-    </div>
+    </ModuleCard>
   );
 }
 

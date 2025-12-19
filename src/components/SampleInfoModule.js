@@ -2,6 +2,8 @@
 
 import { Form, Input, Select, InputNumber, Radio } from 'antd';
 import { EditableInput, EditableSelect, EditableTextArea, ReadOnlyText } from './ReadOnlyField';
+import {ExperimentOutlined} from "@ant-design/icons";
+import ModuleCard from "@/components/ModuleCard";
 
 const { TextArea } = Input;
 
@@ -25,8 +27,10 @@ const REMAINING_SAMPLE_HANDLING = [
 
 export default function SampleInfoModule({ data, onChange, disabled, errors }) {
   return (
-    <div className="module-card">
-      <h2 className="module-title">样品信息</h2>
+    <ModuleCard
+      title="样品信息"
+      icon={<ExperimentOutlined />}
+    >
       <Form layout="vertical">
         <div className="form-row">
           <Form.Item
@@ -192,7 +196,7 @@ export default function SampleInfoModule({ data, onChange, disabled, errors }) {
           </Form.Item>
         </div>
       </Form>
-    </div>
+    </ModuleCard>
   );
 }
 

@@ -4,6 +4,8 @@ import { useMemo } from 'react';
 import SampleListTable from '@/components/SampleListTable';
 import PairwiseComparisonTable from '@/components/PairwiseComparisonTable';
 import MultiGroupComparisonTable from '@/components/MultiGroupComparisonTable';
+import ModuleCard from "@/components/ModuleCard";
+import {BarChartOutlined} from "@ant-design/icons";
 
 export default function SampleAnalysisModule({ data, onChange, disabled, errors }) {
   // 从样本清单中提取分组名称
@@ -33,8 +35,7 @@ export default function SampleAnalysisModule({ data, onChange, disabled, errors 
   };
 
   return (
-    <div className="module-card">
-      <h2 className="module-title">样品分析</h2>
+    <ModuleCard title="样品分析" icon={<BarChartOutlined />}>
 
       {/* 样本清单 */}
       <SampleListTable
@@ -64,7 +65,7 @@ export default function SampleAnalysisModule({ data, onChange, disabled, errors 
           groupNames={groupNames}
         />
       )}
-    </div>
+    </ModuleCard>
   );
 }
 

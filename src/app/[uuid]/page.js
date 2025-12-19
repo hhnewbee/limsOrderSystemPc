@@ -9,7 +9,9 @@ import SampleInfoModule from '@/components/SampleInfoModule';
 import ShippingModule from '@/components/ShippingModule/ShippingModule';
 import ProjectInfoModule from '@/components/ProjectInfoModule';
 import SampleAnalysisModule from '@/components/SampleAnalysisModule';
-import SubmitArea from '@/components/SubmitArea';
+import SubmitArea from '@/components/SubmitArea/SubmitArea';
+import Header from "@/components/Header";
+import {CheckCircleOutlined, CloudUploadOutlined, EditOutlined, SaveOutlined} from "@ant-design/icons";
 
 export default function OrderPage() {
   const params = useParams();
@@ -361,51 +363,95 @@ export default function OrderPage() {
   // 显示"已下单"标记的条件：非可编辑状态且不是草稿
   const isSubmitted = !isEditable && orderData.status === 'submitted';
 
+  // 🟢 新增：计算页面状态的逻辑
+  const getPageStatus = () => {
+    if (!orderData) return null;
+
+    // 1. 已提交状态
+    if (orderData.status === 'submitted') {
+      return {
+        text: '已提交 / 下单成功',
+        color: 'success', // 绿色
+        icon: <CheckCircleOutlined />
+      };
+    }
+
+    // 2. 暂存状态 (如果有草稿或者 tableStatus 是编辑中)
+    // 逻辑：如果是可编辑状态，且没有未保存的更改(意味着已保存)，或者是暂存状态
+    if (isEditable) {
+      if (hasUnsavedChanges) {
+        return {
+          text: '编辑中 (未保存)',
+          color: 'warning', // 橙色
+          icon: <EditOutlined />
+        };
+      } else {
+        return {
+          text: '已暂存 / 编辑中',
+          color: 'processing', // 蓝色
+          icon: <SaveOutlined />
+        };
+      }
+    }
+
+    // 3. 其他状态 (比如只读但未提交，虽然业务上少见)
+    return {
+      text: orderData.tableStatus || '查看模式',
+      color: 'default',
+      icon: <CloudUploadOutlined />
+    };
+  };
+
+  const pageStatus = getPageStatus();
+
   return (
-    <div className="page-container">
-      <h1 style={{ textAlign: 'center', marginBottom: 24 }}>LIMS客户端下单系统</h1>
+    <>
+      <Header status={pageStatus}/>
+      <div className="page-container">
 
-      {isSubmitted && (
-        <div className="status-submitted">
-          ✓ 已下单
-        </div>
-      )}
 
-      <CustomerInfoModule data={orderData} />
+        {isSubmitted && (
+          <div className="status-submitted">
+            ✓ 已下单
+          </div>
+        )}
 
-      <SampleInfoModule
-        data={orderData}
-        onChange={updateFormData}
-        disabled={!isEditable}
-        errors={errors}
-      />
+        <CustomerInfoModule data={orderData}/>
 
-      <ProjectInfoModule data={orderData} />
-
-      <ShippingModule
+        <SampleInfoModule
           data={orderData}
           onChange={updateFormData}
           disabled={!isEditable}
           errors={errors}
-      />
-
-      <SampleAnalysisModule
-        data={orderData}
-        onChange={updateFormData}
-        disabled={!isEditable}
-        errors={errors}
-      />
-
-      {isEditable && (
-        <SubmitArea
-          onSave={handleSave}
-          onSubmit={handleSubmit}
-          saving={saving}
-          submitting={submitting}
-          hasUnsavedChanges={hasUnsavedChanges}
         />
-      )}
-    </div>
+
+        <ProjectInfoModule data={orderData}/>
+
+        <ShippingModule
+          data={orderData}
+          onChange={updateFormData}
+          disabled={!isEditable}
+          errors={errors}
+        />
+
+        <SampleAnalysisModule
+          data={orderData}
+          onChange={updateFormData}
+          disabled={!isEditable}
+          errors={errors}
+        />
+
+        {isEditable && (
+          <SubmitArea
+            onSave={handleSave}
+            onSubmit={handleSubmit}
+            saving={saving}
+            submitting={submitting}
+            hasUnsavedChanges={hasUnsavedChanges}
+          />
+        )}
+      </div>
+    </>
   );
 }
 

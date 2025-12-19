@@ -1,0 +1,90 @@
+/* src/components/ModuleCard/ModuleCard.module.scss */
+
+.card {
+  background: #ffffff;
+  border-radius: 12px;
+  margin-bottom: 24px;
+  position: relative;
+  overflow: hidden;
+
+  box-shadow:
+          0 1px 2px -1px rgba(0, 0, 0, 0.05),
+          0 4px 12px rgba(0, 0, 0, 0.05);
+
+  border: 1px solid rgba(240, 240, 240, 0.8);
+  transition: all 0.3s ease;
+
+
+  &:hover {
+    box-shadow:
+            0 4px 6px -1px rgba(0, 0, 0, 0.05),
+            0 10px 15px -3px rgba(0, 0, 0, 0.05);
+  }
+
+  /* 🟢 关键修改：把 :global 放到 .card 里面 */
+  /* 这样这些样式只会在当前这个卡片里生效，不会影响别的页面 */
+  :global {
+    .ant-form-item-label > label {
+      color: #475569 !important; /* 标签颜色变柔和 */
+      font-weight: 500;
+    }
+
+    /* 所有的只读/禁用输入框样式 */
+    .ant-input[disabled],
+    .ant-input-number-input[disabled],
+    .ant-select-disabled .ant-select-selector {
+      background-color: #f8fafc !important; /* 极浅灰 */
+      color: #334155 !important;
+      border-color: #e2e8f0 !important;
+    }
+  }
+}
+
+.header {
+  padding: 16px 24px;
+  border-bottom: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #ffffff;
+  /* 🟢 新增：相对定位，作为装饰条的父参照物 */
+  position: relative;
+
+  /* 🟢 新增：把装饰条移到这里 */
+  &::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0; /* 这样高度就只撑满 Header，而不是整个卡片 */
+    width: 4px;
+    background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+    /* 左上角会被外层 .card 的 overflow: hidden 自动切圆角，效果很完美 */
+  }
+}
+
+.title {
+  font-size: 16px;
+  font-weight: 700;
+  color: #1e293b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  line-height: 1.5;
+}
+
+.iconWrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background-color: #eff6ff;
+  border-radius: 6px;
+  color: #3b82f6;
+}
+
+.content {
+  padding: 24px;
+}

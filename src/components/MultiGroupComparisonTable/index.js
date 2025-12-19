@@ -10,7 +10,7 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
 
     // --- 自动清理无效组名 & 重新生成比较方案 ---
     useEffect(() => {
-        if (disabled) return;
+        // if (disabled) return;
 
         let hasChanges = false;
 

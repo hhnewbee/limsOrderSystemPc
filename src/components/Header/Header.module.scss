@@ -1,0 +1,98 @@
+.header {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 64px;
+  background: #ffffff;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  z-index: 1000;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.leftSection {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoBox {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: bold;
+  font-size: 18px;
+  box-shadow: 0 2px 6px rgba(24, 144, 255, 0.3);
+}
+
+.systemTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #333;
+  margin: 0;
+
+  span {
+    color: #d9d9d9;
+    margin: 0 8px;
+    font-weight: normal;
+  }
+
+  .subTitle {
+    font-size: 14px;
+    color: #666;
+    font-weight: normal;
+  }
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 20px;
+  transition: background 0.3s;
+
+  &:hover {
+    background: #f5f5f5;
+  }
+}
+
+.userName {
+  font-size: 14px;
+  color: #666;
+}
+
+.statusBadge {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-right: 12px;
+}
+
+.statusLabel {
+  font-size: 13px;
+  color: #999;
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background-color: #f0f0f0;
+  margin: 0 16px;
+}

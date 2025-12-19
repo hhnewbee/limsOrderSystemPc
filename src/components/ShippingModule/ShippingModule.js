@@ -2,13 +2,13 @@
 
 import { Form, Radio, Input, DatePicker } from 'antd';
 import dayjs from 'dayjs';
-import { ReadOnlyText } from '../ReadOnlyField';
 import styles from './ShippingModule.module.scss';
+import {TruckOutlined} from "@ant-design/icons";
+import ModuleCard from "@/components/ModuleCard";
 
 export default function ShippingModule({ data, onChange, disabled, errors }) {
   return (
-    <div className="module-card">
-      <h2 className="module-title">样品运送</h2>
+    <ModuleCard title="样品运送" icon={<TruckOutlined/>}>
       <Form layout="vertical">
         <Form.Item
           label="运送方式"
@@ -16,19 +16,15 @@ export default function ShippingModule({ data, onChange, disabled, errors }) {
           validateStatus={errors?.shippingMethod ? 'error' : ''}
           help={errors?.shippingMethod}
         >
-          {disabled ? (
-            <ReadOnlyText value={data.shippingMethod} />
-          ) : (
-            <Radio.Group
-              value={data.shippingMethod}
-              onChange={(e) => onChange('shippingMethod', e.target.value)}
-              disabled={disabled}
-            >
-              <Radio value="快递">快递</Radio>
-              <Radio value="自取自送">自取自送</Radio>
-              <Radio value="联合分析，无需快递">联合分析，无需快递</Radio>
-            </Radio.Group>
-          )}
+          <Radio.Group
+            value={data.shippingMethod}
+            onChange={(e) => onChange('shippingMethod', e.target.value)}
+            disabled={disabled}
+          >
+            <Radio value="快递">快递</Radio>
+            <Radio value="自取自送">自取自送</Radio>
+            <Radio value="联合分析，无需快递">联合分析，无需快递</Radio>
+          </Radio.Group>
         </Form.Item>
 
         {data.shippingMethod === '快递' && (
@@ -41,16 +37,12 @@ export default function ShippingModule({ data, onChange, disabled, errors }) {
                 validateStatus={errors?.expressCompanyWaybill ? 'error' : ''}
                 help={errors?.expressCompanyWaybill}
               >
-                {disabled ? (
-                  <ReadOnlyText value={data.expressCompanyWaybill} />
-                ) : (
-                  <Input
-                    value={data.expressCompanyWaybill}
-                    onChange={(e) => onChange('expressCompanyWaybill', e.target.value)}
-                    disabled={disabled}
-                    placeholder="请输入快递公司及运单号"
-                  />
-                )}
+                <Input
+                  value={data.expressCompanyWaybill}
+                  onChange={(e) => onChange('expressCompanyWaybill', e.target.value)}
+                  disabled={disabled}
+                  placeholder="请输入快递公司及运单号"
+                />
               </Form.Item>
               <Form.Item
                 label="送样时间"
@@ -59,18 +51,14 @@ export default function ShippingModule({ data, onChange, disabled, errors }) {
                 validateStatus={errors?.shippingTime ? 'error' : ''}
                 help={errors?.shippingTime}
               >
-                {disabled ? (
-                  <ReadOnlyText value={data.shippingTime ? dayjs(data.shippingTime).format('YYYY-MM-DD HH:mm:ss') : ''} />
-                ) : (
-                  <DatePicker
-                    value={data.shippingTime ? dayjs(data.shippingTime) : null}
-                    onChange={(date) => onChange('shippingTime', date ? date.toISOString() : null)}
-                    disabled={disabled}
-                    style={{ width: '100%' }}
-                    placeholder="请选择送样时间"
-                    showTime
-                  />
-                )}
+                <DatePicker
+                  value={data.shippingTime ? dayjs(data.shippingTime) : null}
+                  onChange={(date) => onChange('shippingTime', date ? date.toISOString() : null)}
+                  disabled={disabled}
+                  style={{ width: '100%' }}
+                  placeholder="请选择送样时间"
+                  showTime
+                />
               </Form.Item>
             </div>
 
@@ -87,7 +75,7 @@ export default function ShippingModule({ data, onChange, disabled, errors }) {
           </>
         )}
       </Form>
-    </div>
+    </ModuleCard>
   );
 }
 
