@@ -14,6 +14,7 @@ const DINGTALK_API_BASE = 'https://api.dingtalk.com';
 
 // 调试日志函数
 function debugLog(title, data) {
+  return
   console.log('\n========================================');
   console.log(`[钉钉API调试] ${title}`);
   console.log('----------------------------------------');
@@ -243,13 +244,11 @@ export function parseYidaFormData(yidaData) {
 
   const formData = yidaData.data[0].formData;
   const formInstanceId = yidaData.data[0].formInstanceId;
-  const tableStatus = yidaData.data[0].tableStatus; // 获取钉钉表单状态
 
-  debugLog('parseYidaFormData - 表单数据', { formInstanceId, formData, tableStatus });
+  debugLog('parseYidaFormData - 表单数据', { formInstanceId, formData });
 
   const result = {
     formInstanceId,
-    tableStatus, // 添加表单状态
     // 客户信息
     customerUnit: formData.CustomerUnit || '',
     customerName: formData.CustomerName || '',
@@ -285,7 +284,8 @@ export function parseYidaFormData(yidaData) {
     salesmanName: formData.NameOfSalesman || '',
     salesmanContact: formData.ContactInformationOfSalesman || '',
     technicalSupportName: formData.NameOfTechnicalSupportPersonnel || '',
-    projectType: ''
+    projectType: formData.ProjectType,
+    tableStatus: formData.TableStatus
   };
 
   debugLog('parseYidaFormData - 解析结果', result);

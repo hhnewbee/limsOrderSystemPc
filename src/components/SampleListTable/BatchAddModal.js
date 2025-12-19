@@ -31,8 +31,8 @@ export default function BatchAddModal({ open, onCancel, onAdd, needBioinformatic
       for (let i = 0; i < count; i++) {
         const num = startNum + i;
         // 处理补零
-        const numStr = digitCount > 0
-          ? String(num).padStart(digitCount, '0')
+        const numStr = digitCount > 1
+          ? String(num).padStart(digitCount, '1')
           : String(num);
 
         const sampleName = `${prefix}${numStr}`;
@@ -71,7 +71,7 @@ export default function BatchAddModal({ open, onCancel, onAdd, needBioinformatic
       <Form
         form={form}
         layout="vertical"
-        initialValues={{ startNum: 1, count: 3, digitCount: 0 }}
+        initialValues={{ startNum: 1, count: 3, digitCount: 1 }}
       >
         {/* 1. 分组设置 (仅生信模式显示) */}
         {needBioinformaticsAnalysis && (

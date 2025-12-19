@@ -21,6 +21,7 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
     // [新增] 状态管理
     const [selectedRows, setSelectedRows] = useState(new Set()); // 存储选中行的索引
     const [isBatchAddOpen, setIsBatchAddOpen] = useState(false); // 控制弹窗
+    const [importing, setImporting] = useState(false); // [新增] 导入加载状态
 
     // 监听数据或错误变化，重置列表高度计算
     useEffect(() => {
@@ -121,6 +122,12 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
     }, [data, onChange]);
 
     const handleImport = useCallback((file) => {
+        // 1. 简单的文件大小校验 (可选，比如限制 5MB)
+        if (file.size / 1024 / 1024 > 5) {
+            message.error('文件过大，请上传 5MB 以内的 Excel 文件');
+            return false;
+        }
+        setImporting(true); // 开启 Loading
         const reader = new FileReader();
         reader.onload = (e) => {
             try {
@@ -136,7 +143,11 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
                 }));
                 onChange([...data, ...importedData]);
                 message.success(`成功导入 ${importedData.length} 条数据`);
-            } catch (err) { message.error('导入失败'); }
+            } catch (err) {
+                message.error('导入失败，请检查文件格式是否正确');
+            } finally {
+                setImporting(false); // 关闭 Loading
+            }
         };
         reader.readAsBinaryString(file);
         return false;
@@ -210,7 +221,7 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
                         </Button>
 
                         <Upload accept=".xlsx,.xls" showUploadList={false} beforeUpload={handleImport}>
-                            <Button icon={<UploadOutlined />}>批量导入</Button>
+                            <Button icon={<UploadOutlined loading={importing}/>}>{importing ? '处理中...' : '批量导入'}</Button>
                         </Upload>
                     </>
                   )}
