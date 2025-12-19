@@ -21,14 +21,14 @@ export default function PairwiseComparisonTable({ data = [], onChange, disabled,
             // 检查对照组
             if (newItem.controlGroup && !groupNames.includes(newItem.controlGroup)) {
                 newItem.controlGroup = '';
-                newItem.comparisonName = '';
+                newItem.comparisonScheme = '';
                 rowChanged = true;
             }
 
             // 检查实验组
-            if (newItem.experimentalGroup && !groupNames.includes(newItem.experimentalGroup)) {
-                newItem.experimentalGroup = '';
-                newItem.comparisonName = '';
+            if (newItem.treatmentGroup && !groupNames.includes(newItem.treatmentGroup)) {
+                newItem.treatmentGroup = '';
+                newItem.comparisonScheme = '';
                 rowChanged = true;
             }
 
@@ -42,7 +42,7 @@ export default function PairwiseComparisonTable({ data = [], onChange, disabled,
     }, [groupNames, disabled, data, onChange]);
 
     const handleAddRow = useCallback(() => {
-        onChange([...data, { controlGroup: '', experimentalGroup: '', comparisonName: '' }]);
+        onChange([...data, { controlGroup: '', treatmentGroup: '', comparisonScheme: '' }]);
         setSelectedRowIndex(null);
     }, [data, onChange]);
 
@@ -81,13 +81,13 @@ export default function PairwiseComparisonTable({ data = [], onChange, disabled,
         const safeValue = value || '';
         const currentRow = { ...newData[index], [field]: safeValue };
 
-        if (field === 'controlGroup' || field === 'experimentalGroup') {
+        if (field === 'controlGroup' || field === 'treatmentGroup') {
             const c = currentRow.controlGroup;
-            const e = currentRow.experimentalGroup;
+            const e = currentRow.treatmentGroup;
             if (c && e && c !== e) {
-                currentRow.comparisonName = `${c} v ${e}`;
+                currentRow.comparisonScheme = `${c} v ${e}`;
             } else {
-                currentRow.comparisonName = '';
+                currentRow.comparisonScheme = '';
             }
         }
 
@@ -132,7 +132,7 @@ export default function PairwiseComparisonTable({ data = [], onChange, disabled,
             {data.length > 0 ? (
                 data.map((item, index) => {
                     const controlOptions = groupNames.map(name => ({
-                        label: name, value: name, disabled: name === item.experimentalGroup
+                        label: name, value: name, disabled: name === item.treatmentGroup
                     }));
 
                     const experimentalOptions = groupNames.map(name => ({
@@ -185,8 +185,8 @@ export default function PairwiseComparisonTable({ data = [], onChange, disabled,
                                 {groupNames.length > 0 ? (
                                     <Select
                                         placeholder="请选择实验组"
-                                        value={item.experimentalGroup || undefined}
-                                        onChange={(val) => handleCellChange(index, 'experimentalGroup', val)}
+                                        value={item.treatmentGroup || undefined}
+                                        onChange={(val) => handleCellChange(index, 'treatmentGroup', val)}
                                         onKeyDown={(e) => handleInputKeyDown(e, index)}
                                         options={experimentalOptions}
                                         disabled={disabled}
@@ -198,8 +198,8 @@ export default function PairwiseComparisonTable({ data = [], onChange, disabled,
                                 ) : (
                                     <Input
                                         placeholder="请输入实验组名称"
-                                        value={item.experimentalGroup}
-                                        onChange={(e) => handleCellChange(index, 'experimentalGroup', e.target.value)}
+                                        value={item.treatmentGroup}
+                                        onChange={(e) => handleCellChange(index, 'treatmentGroup', e.target.value)}
                                         onKeyDown={(e) => handleInputKeyDown(e, index)}
                                         disabled={disabled}
                                         allowClear
@@ -210,7 +210,7 @@ export default function PairwiseComparisonTable({ data = [], onChange, disabled,
                             <div className={styles.cell} style={{ flex: 1.2 }}>
                                 <Input
                                     placeholder="自动生成"
-                                    value={item.comparisonName}
+                                    value={item.comparisonScheme}
                                     readOnly
                                     className={styles.readOnlyInput}
                                     disabled={disabled}

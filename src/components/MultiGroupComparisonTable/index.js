@@ -16,14 +16,15 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
 
         const newData = data.map(item => {
             // 1. 过滤无效组名
-            const validGroups = item.groups.filter(g => groupNames.includes(g));
+            const validGroups = item.comparisonGroups.filter(g => groupNames.includes(g));
+            item.comparisonName = validGroups.length > 0 ? validGroups.join(' vs ') : '';
 
             // 2. 检查组名是否有变化
-            if (validGroups.length !== item.groups.length) {
+            if (validGroups.length !== item.comparisonGroups.length) {
                 hasChanges = true;
                 // 3. 如果有变化，重新生成 comparisonName
                 const newName = validGroups.length > 0 ? validGroups.join(' vs ') : '';
-                return { ...item, groups: validGroups, comparisonName: newName };
+                return { ...item, comparisonGroups: validGroups, comparisonName: newName };
             }
             return item;
         });
@@ -34,7 +35,7 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
     }, [groupNames, disabled, data, onChange]);
 
     const handleAddRow = useCallback(() => {
-        onChange([...data, { comparisonName: '', groups: [] }]);
+        onChange([...data, { comparisonName: '', comparisonGroups: [] }]);
         setSelectedRowIndex(null);
     }, [data, onChange]);
 
@@ -72,7 +73,7 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
         let currentRow = { ...newData[index], [field]: value };
 
         // 如果修改的是“组别选择”，自动生成“比较方案名称”
-        if (field === 'groups') {
+        if (field === 'comparisonGroups') {
             if (value && value.length > 0) {
                 currentRow.comparisonName = value.join(' vs ');
             } else {
@@ -144,8 +145,8 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
                                 <Select
                                     mode="multiple"
                                     placeholder="请选择至少两个组别"
-                                    value={item.groups}
-                                    onChange={(val) => handleCellChange(index, 'groups', val)}
+                                    value={item.comparisonGroups}
+                                    onChange={(val) => handleCellChange(index, 'comparisonGroups', val)}
                                     onKeyDown={(e) => handleInputKeyDown(e, index)}
                                     options={groupOptions}
                                     disabled={disabled}
