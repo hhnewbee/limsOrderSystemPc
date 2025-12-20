@@ -199,13 +199,22 @@ export default function OrderPage() {
     if (!orderData.sampleTypeDetail) {
       newErrors.sampleTypeDetail = '请填写样本类型详述';
     }
-    if (!orderData.detectionQuantity) {
-      newErrors.detectionQuantity = '请填写检测数量';
-    }
     if (!orderData.remainingSampleHandling) {
       newErrors.remainingSampleHandling = '请选择剩余样品处理方式';
     }
+    if (!orderData.detectionQuantity) {
+      newErrors.detectionQuantity = '请填写检测数量';
+    } else {
+      // 获取填写的数量（转为整数）
+      const quantity = parseInt(orderData.detectionQuantity, 10);
+      // 获取实际样本清单的行数
+      const listCount = orderData.sampleList ? orderData.sampleList.length : 0;
 
+      // 如果是有效数字，且与清单长度不一致
+      if (!isNaN(quantity) && quantity !== listCount) {
+        newErrors.detectionQuantity = `检测数量(${quantity})与实际样本清单数量(${listCount})不一致`;
+      }
+    }
     // 样品运送校验
     if (!orderData.shippingMethod) {
       newErrors.shippingMethod = '请选择运送方式';
@@ -452,7 +461,7 @@ export default function OrderPage() {
 
               {/* 订单号卡片：样式已抽离 */}
               <div className={styles.orderInfoCard}>
-                <div className={styles.label}>订单编号</div>
+                <div className={styles.label}>项目编号</div>
                 <div className={styles.value}>
                   {orderData.projectNumber || '系统生成中...'}
                 </div>

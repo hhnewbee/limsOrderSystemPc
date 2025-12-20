@@ -1,7 +1,8 @@
 /* src/components/ProjectInfoModule.js */
 import React from 'react';
 import ModuleCard from '@/components/ModuleCard';
-import styles from './ProjectInfoModule.module.scss'; // 引入新建的样式
+import styles from './ProjectInfoModule.module.scss';
+import {ProjectOutlined} from "@ant-design/icons"; // 引入新建的样式
 
 export default function ProjectInfoModule({ data }) {
   // 如果没有数据，不渲染任何内容
@@ -18,13 +19,14 @@ export default function ProjectInfoModule({ data }) {
   );
 
   return (
-    <ModuleCard title="项目信息">
-      <div className={styles.container}>
+    <div className={styles.infoBlock}>
+      <div className={styles.header}>项目信息</div>
+      <div className={styles.content}>
         {renderRow("业务员姓名", data.salesmanName)}
         {renderRow("业务员联系方式", data.salesmanContact)}
         {renderRow("检测服务费单价（元/样本）", data.unitPrice)}
         {renderRow("其他费用", data.otherExpenses)}
       </div>
-    </ModuleCard>
+    </div>
   );
 }

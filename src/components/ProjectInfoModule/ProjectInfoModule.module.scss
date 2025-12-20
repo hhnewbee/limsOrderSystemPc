@@ -1,41 +1,54 @@
 /* src/components/ProjectInfoModule.module.scss */
 
-.container {
-  display: flex;
-  flex-direction: column;
-  gap: 12px; /* 行与行之间的间距 */
+.infoBlock {
+  /* 回归纯白背景，干净清爽 */
+  background-color: #fff;
+
+  /* 去掉四周的深边框，改用轻微的阴影 */
+  border: 1px solid #f0f0f0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+
+  /* 关键：顶部加一条蓝色装饰线，标示这是“信息区” */
+  border-top: 3px solid #1890ff;
+
+  border-radius: 8px 8px 4px 4px; /* 顶部圆角稍微调整 */
+  padding: 16px;
+  margin-bottom: 16px;
 }
 
-.row {
+.header {
+  font-size: 15px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #f0f0f0; /* 实线分割 */
+
   display: flex;
-  align-items: flex-start; /* 顶部对齐，防止多行文字导致标签跑偏 */
-  line-height: 1.5;
-  font-size: 14px;
+  align-items: center;
+  gap: 8px;
+
+  /* 既然顶部有横条了，这里的竖条装饰可以去掉，或者保留看喜好 */
+  &::before {
+    display: none;
+  }
 }
 
 .label {
-  /* 关键点：固定宽度，解决“参差不齐”的问题 */
-  flex: 0 0 80px;
-  color: #666;
-  font-weight: 500;
+  flex: 0 0 70px;
+  color: #999;
+  font-weight: normal;
+  margin-right: 8px;
   text-align: left;
-  margin-right: 12px;
-
-  /* 防止标签换行 */
   white-space: nowrap;
 }
-
 .value {
-  flex: 1; /* 占据剩余空间 */
-  color: #333;
+  flex: 1;
+  color: rgba(51, 51, 51, 0.75);
   font-weight: 500;
-
-  /* 关键点：长文字自动换行，防止撑爆容器 */
   word-break: break-all;
-  overflow-wrap: break-word;
 }
 
-/* 针对特殊状态（如没有数据时） */
 .empty {
   color: #ccc;
   font-style: italic;
