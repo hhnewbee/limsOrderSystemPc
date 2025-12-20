@@ -11,7 +11,13 @@ import ProjectInfoModule from '@/components/ProjectInfoModule';
 import SampleAnalysisModule from '@/components/SampleAnalysisModule';
 import SubmitArea from '@/components/SubmitArea/SubmitArea';
 import Header from "@/components/Header";
-import {CheckCircleOutlined, CloudUploadOutlined, EditOutlined, SaveOutlined} from "@ant-design/icons";
+import {
+  CheckCircleOutlined,
+  CloudUploadOutlined,
+  EditOutlined,
+  ExclamationCircleOutlined,
+  SaveOutlined
+} from "@ant-design/icons";
 
 export default function OrderPage() {
   const params = useParams();
@@ -355,29 +361,32 @@ export default function OrderPage() {
     );
   }
 
-  // 判断表单是否可编辑
-  // 可编辑状态：客户编辑中、客户修改中
-  const editableTableStatus = ['客户编辑中', '客户修改中'];
-  const isEditable = editableTableStatus.includes(orderData.tableStatus);
+  // 1. 判断是否可编辑 (由 tableStatus 决定权限)
+  const editableTableStatus = ['客户编辑中', '客户修改中', '草稿']; // 确保包含所有可编辑状态
+  const isEditable = orderData && editableTableStatus.includes(orderData.tableStatus);
 
-  // 显示"已下单"标记的条件：非可编辑状态且不是草稿
-  const isSubmitted = !isEditable && orderData.status === 'submitted';
-
-  // 🟢 新增：计算页面状态的逻辑
+  // 2. 计算显示给用户的状态 (Page Status)
   const getPageStatus = () => {
     if (!orderData) return null;
 
-    // 1. 已提交状态
+    // 情况 A: 已正式提交
     if (orderData.status === 'submitted') {
+      // 即使已提交，如果 tableStatus 是 "客户修改中"，说明被驳回了
+      if (orderData.tableStatus === '客户修改中') {
+        return {
+          text: '被驳回 / 需修改',
+          color: 'error', // 红色
+          icon: <ExclamationCircleOutlined />
+        };
+      }
       return {
-        text: '已提交 / 下单成功',
+        text: '已提交 / 等待审核',
         color: 'success', // 绿色
         icon: <CheckCircleOutlined />
       };
     }
 
-    // 2. 暂存状态 (如果有草稿或者 tableStatus 是编辑中)
-    // 逻辑：如果是可编辑状态，且没有未保存的更改(意味着已保存)，或者是暂存状态
+    // 情况 B: 编辑状态 (草稿 或 被驳回)
     if (isEditable) {
       if (hasUnsavedChanges) {
         return {
@@ -387,17 +396,17 @@ export default function OrderPage() {
         };
       } else {
         return {
-          text: '已暂存 / 编辑中',
+          text: '已暂存 / 草稿',
           color: 'processing', // 蓝色
           icon: <SaveOutlined />
         };
       }
     }
 
-    // 3. 其他状态 (比如只读但未提交，虽然业务上少见)
+    // 情况 C: 其他只读状态 (例如: 审核通过, 实验中)
     return {
       text: orderData.tableStatus || '查看模式',
-      color: 'default',
+      color: 'default', // 灰色
       icon: <CloudUploadOutlined />
     };
   };
@@ -408,13 +417,6 @@ export default function OrderPage() {
     <>
       <Header status={pageStatus}/>
       <div className="page-container">
-
-
-        {isSubmitted && (
-          <div className="status-submitted">
-            ✓ 已下单
-          </div>
-        )}
 
         <CustomerInfoModule data={orderData}/>
 

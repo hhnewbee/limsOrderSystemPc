@@ -221,7 +221,7 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
                         </Button>
 
                         <Upload accept=".xlsx,.xls" showUploadList={false} beforeUpload={handleImport}>
-                            <Button icon={<UploadOutlined loading={importing}/>}>{importing ? '处理中...' : '批量导入'}</Button>
+                            <Button loading={importing} icon={<UploadOutlined />}>{importing ? '处理中...' : '批量导入'}</Button>
                         </Upload>
                     </>
                   )}
