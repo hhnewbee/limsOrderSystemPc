@@ -1,0 +1,61 @@
+/* src/app/[uuid]/page.module.scss */
+
+.layoutGrid {
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+  position: relative;
+
+  /* 响应式：平板/手机端自动变回单栏 */
+  @media (max-width: 1024px) {
+    flex-direction: column;
+  }
+}
+
+.sidebar {
+  width: 320px;
+  flex-shrink: 0; /* 防止侧边栏被压缩 */
+
+  @media (max-width: 1024px) {
+    width: 100%; /* 移动端占满宽度 */
+  }
+}
+
+.mainContent {
+  flex: 1;
+  min-width: 0; /* 防止表格撑爆 flex 容器 */
+}
+
+.stickyWrapper {
+  position: sticky;
+  top: 100px; /* Header高度(64px) + 间距 */
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+
+  @media (max-width: 1024px) {
+    position: static; /* 移动端取消吸顶 */
+  }
+}
+
+/* 订单号卡片样式 (替代原来的内联样式) */
+.orderInfoCard {
+  background: #fff;
+  padding: 16px;
+  border-radius: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  border: 1px solid rgba(240, 240, 240, 0.8);
+
+  .label {
+    font-size: 12px;
+    color: #999;
+    margin-bottom: 4px;
+  }
+
+  .value {
+    font-size: 18px;
+    font-weight: bold;
+    font-family: monospace; /* 等宽字体显示单号更清楚 */
+    color: #333;
+  }
+}

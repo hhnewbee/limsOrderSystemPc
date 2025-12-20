@@ -11,6 +11,7 @@ import ProjectInfoModule from '@/components/ProjectInfoModule';
 import SampleAnalysisModule from '@/components/SampleAnalysisModule';
 import SubmitArea from '@/components/SubmitArea/SubmitArea';
 import Header from "@/components/Header";
+import styles from './page.module.scss';
 import {
   CheckCircleOutlined,
   CloudUploadOutlined,
@@ -417,32 +418,53 @@ export default function OrderPage() {
     <>
       <Header status={pageStatus}/>
       <div className="page-container">
+        {/* 🟢 2. 使用 styles.layoutGrid */}
+        <div className={styles.layoutGrid}>
 
-        <CustomerInfoModule data={orderData}/>
+          {/* 左侧侧边栏 */}
+          <aside className={styles.sidebar}>
+            <div className={styles.stickyWrapper}>
 
-        <SampleInfoModule
-          data={orderData}
-          onChange={updateFormData}
-          disabled={!isEditable}
-          errors={errors}
-        />
+              {/* 订单号卡片：样式已抽离 */}
+              <div className={styles.orderInfoCard}>
+                <div className={styles.label}>订单编号</div>
+                <div className={styles.value}>
+                  {orderData.projectNumber || '系统生成中...'}
+                </div>
+              </div>
 
-        <ProjectInfoModule data={orderData}/>
+              {/* 只读模块 */}
+              <ProjectInfoModule data={orderData}/>
+              <CustomerInfoModule data={orderData}/>
+            </div>
+          </aside>
 
-        <ShippingModule
-          data={orderData}
-          onChange={updateFormData}
-          disabled={!isEditable}
-          errors={errors}
-        />
+          {/* 右侧主内容 */}
+          <main className={styles.mainContent}>
+            <SampleInfoModule
+              data={orderData}
+              onChange={updateFormData}
+              disabled={!isEditable}
+              errors={errors}
+            />
 
-        <SampleAnalysisModule
-          data={orderData}
-          onChange={updateFormData}
-          disabled={!isEditable}
-          errors={errors}
-        />
+            <ShippingModule
+              data={orderData}
+              onChange={updateFormData}
+              disabled={!isEditable}
+              errors={errors}
+            />
 
+            <SampleAnalysisModule
+              data={orderData}
+              onChange={updateFormData}
+              disabled={!isEditable}
+              errors={errors}
+            />
+          </main>
+        </div>
+
+        {/* 底部提交栏 */}
         {isEditable && (
           <SubmitArea
             onSave={handleSave}
