@@ -1,0 +1,40 @@
+/* src/components/CustomerInfoModule.module.scss */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 4px 0;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.label {
+  /* 保持与项目信息一致的宽度，视觉上更整洁 */
+  flex: 0 0 80px;
+  color: #666;
+  font-weight: 500;
+  margin-right: 12px;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.value {
+  flex: 1;
+  color: #333;
+
+  /* 关键：防止长邮箱地址撑爆容器 */
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+.empty {
+  color: #ccc;
+  font-style: italic;
+  font-weight: normal;
+}

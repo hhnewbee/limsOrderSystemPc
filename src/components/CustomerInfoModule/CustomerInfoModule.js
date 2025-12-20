@@ -59,4 +59,3 @@ export default function CustomerInfoModule({ data }) {
     </ModuleCard>
   );
 }
-

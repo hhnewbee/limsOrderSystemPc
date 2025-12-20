@@ -1,0 +1,42 @@
+/* src/components/ProjectInfoModule.module.scss */
+
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px; /* 行与行之间的间距 */
+}
+
+.row {
+  display: flex;
+  align-items: flex-start; /* 顶部对齐，防止多行文字导致标签跑偏 */
+  line-height: 1.5;
+  font-size: 14px;
+}
+
+.label {
+  /* 关键点：固定宽度，解决“参差不齐”的问题 */
+  flex: 0 0 80px;
+  color: #666;
+  font-weight: 500;
+  text-align: left;
+  margin-right: 12px;
+
+  /* 防止标签换行 */
+  white-space: nowrap;
+}
+
+.value {
+  flex: 1; /* 占据剩余空间 */
+  color: #333;
+  font-weight: 500;
+
+  /* 关键点：长文字自动换行，防止撑爆容器 */
+  word-break: break-all;
+  overflow-wrap: break-word;
+}
+
+/* 针对特殊状态（如没有数据时） */
+.empty {
+  color: #ccc;
+  font-style: italic;
+}

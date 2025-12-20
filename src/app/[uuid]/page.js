@@ -4,10 +4,10 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
 import { message, Spin, Modal } from 'antd';
 import axios from 'axios';
-import CustomerInfoModule from '@/components/CustomerInfoModule';
+import CustomerInfoModule from '@/components/CustomerInfoModule/CustomerInfoModule';
 import SampleInfoModule from '@/components/SampleInfoModule';
 import ShippingModule from '@/components/ShippingModule/ShippingModule';
-import ProjectInfoModule from '@/components/ProjectInfoModule';
+import ProjectInfoModule from '@/components/ProjectInfoModule/ProjectInfoModule';
 import SampleAnalysisModule from '@/components/SampleAnalysisModule';
 import SubmitArea from '@/components/SubmitArea/SubmitArea';
 import Header from "@/components/Header";
@@ -421,26 +421,9 @@ export default function OrderPage() {
         {/* 🟢 2. 使用 styles.layoutGrid */}
         <div className={styles.layoutGrid}>
 
-          {/* 左侧侧边栏 */}
-          <aside className={styles.sidebar}>
-            <div className={styles.stickyWrapper}>
-
-              {/* 订单号卡片：样式已抽离 */}
-              <div className={styles.orderInfoCard}>
-                <div className={styles.label}>订单编号</div>
-                <div className={styles.value}>
-                  {orderData.projectNumber || '系统生成中...'}
-                </div>
-              </div>
-
-              {/* 只读模块 */}
-              <ProjectInfoModule data={orderData}/>
-              <CustomerInfoModule data={orderData}/>
-            </div>
-          </aside>
-
-          {/* 右侧主内容 */}
           <main className={styles.mainContent}>
+            <CustomerInfoModule data={orderData}/>
+
             <SampleInfoModule
               data={orderData}
               onChange={updateFormData}
@@ -462,6 +445,23 @@ export default function OrderPage() {
               errors={errors}
             />
           </main>
+
+          {/* 左侧侧边栏 */}
+          <aside className={styles.sidebar}>
+            <div className={styles.stickyWrapper}>
+
+              {/* 订单号卡片：样式已抽离 */}
+              <div className={styles.orderInfoCard}>
+                <div className={styles.label}>订单编号</div>
+                <div className={styles.value}>
+                  {orderData.projectNumber || '系统生成中...'}
+                </div>
+              </div>
+
+              {/* 只读模块 */}
+              <ProjectInfoModule data={orderData}/>
+            </div>
+          </aside>
         </div>
 
         {/* 底部提交栏 */}

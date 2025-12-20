@@ -3,7 +3,7 @@
 .layoutGrid {
   display: flex;
   gap: 24px;
-  align-items: flex-start;
+  align-items: stretch;
   position: relative;
 
   /* 响应式：平板/手机端自动变回单栏 */
@@ -13,7 +13,7 @@
 }
 
 .sidebar {
-  width: 320px;
+  width: 300px;
   flex-shrink: 0; /* 防止侧边栏被压缩 */
 
   @media (max-width: 1024px) {
