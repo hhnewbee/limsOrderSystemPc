@@ -4,7 +4,7 @@ import { searchFormData, parseYidaFormData } from '@/lib/dingtalk';
 
 // 获取订单数据
 export async function GET(request, { params }) {
-  const { uuid } = params;
+  const { uuid } = await params;
 
   console.log('\n[API] ========== 开始获取订单 ==========');
   console.log('[API] UUID:', uuid);

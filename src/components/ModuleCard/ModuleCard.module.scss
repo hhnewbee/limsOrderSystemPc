@@ -23,20 +23,19 @@
 
   /* 🟢 关键修改：把 :global 放到 .card 里面 */
   /* 这样这些样式只会在当前这个卡片里生效，不会影响别的页面 */
-  :global {
-    .ant-form-item-label > label {
-      color: #475569 !important; /* 标签颜色变柔和 */
-      font-weight: 500;
-    }
+  /* 1. 标签样式 */
+  :global(.ant-form-item-label > label) {
+    color: #475569 !important;
+    font-weight: 500;
+  }
 
-    /* 所有的只读/禁用输入框样式 */
-    .ant-input[disabled],
-    .ant-input-number-input[disabled],
-    .ant-select-disabled .ant-select-selector {
-      background-color: #f8fafc !important; /* 极浅灰 */
-      color: #334155 !important;
-      border-color: #e2e8f0 !important;
-    }
+  /* 2. 只读/禁用输入框样式 (每个选择器都要包在 :global() 里) */
+  :global(.ant-input[disabled]),
+  :global(.ant-input-number-input[disabled]),
+  :global(.ant-select-disabled .ant-select-selector) {
+    background-color: #f8fafc !important;
+    color: #334155 !important;
+    border-color: #e2e8f0 !important;
   }
 }
 
