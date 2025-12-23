@@ -262,20 +262,20 @@ export function parseYidaFormData(yidaData) {
     productLine: formData.ServiceTypeOther || '',
     specialInstructions: formData.SpecialInstructionsifYourSampleHasSpecialRequirementsPleaseNoteTheInstructions || '',
     speciesName: formData.SpeciesName || '',
-    speciesLatinName: '',
-    sampleType: '',
+    speciesLatinName: formData.SpeciesLatinName || '',
+    sampleType: formData.SampleType || '',
     sampleTypeDetail: formData.SampleTypeDetails || '',
-    detectionQuantity: null,
+    detectionQuantity: formData.DetectionQuantity ? parseInt(formData.DetectionQuantity) : null,
     cellCount: formData.CellNumber ? parseInt(formData.CellNumber) : null,
     preservationMedium: formData.SaveMedia || '',
     samplePreprocessing: formData.SamplePreprocessingMethod || '',
-    remainingSampleHandling: '',
-    needBioinformaticsAnalysis: false,
+    remainingSampleHandling: formData.RemainingSampleProcessingMethod || '',
+    needBioinformaticsAnalysis: formData.IsBioinformaticsAnalysis === '是' || formData.IsBioinformaticsAnalysis === true,
 
     // 样品运送
-    shippingMethod: '',
+    shippingMethod: formData.ModeOfDelivery || '',
     expressCompanyWaybill: formData.ExpressCompanyAndWaybillNumber || '',
-    shippingTime: null,
+    shippingTime: formData.SampleDeliveryTime || null,
 
     // 项目信息
     projectNumber: formData.UniqueIdentification || '',
@@ -307,7 +307,7 @@ export function convertToYidaFormat(localData) {
     RemainingSampleProcessingMethod: localData.remainingSampleHandling,
     ModeOfDelivery: localData.shippingMethod,
     SampleDeliveryTime: timeFormat(localData.shippingTime),
-    IsBioinformaticsAnalysis: localData.IsBioinformaticsAnalysis,
+    IsBioinformaticsAnalysis: localData.needBioinformaticsAnalysis,
     TableStatus: "客户已提交",
   };
   
