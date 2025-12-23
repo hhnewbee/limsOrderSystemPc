@@ -19,6 +19,7 @@ import {
   ExclamationCircleOutlined,
   SaveOutlined
 } from "@ant-design/icons";
+import OrderStatusSteps from "../../components/OrderStatusSteps";
 
 export default function OrderPage() {
   const params = useParams();
@@ -469,6 +470,11 @@ export default function OrderPage() {
 
               {/* 只读模块 */}
               <ProjectInfoModule data={orderData}/>
+
+              {/* 🟢 新增：状态流转图组件 */}
+              <div style={{ marginBottom: '16px' }}>
+                <OrderStatusSteps currentStatus={orderData.tableStatus || orderData.status} data={orderData} />
+              </div>
             </div>
           </aside>
         </div>

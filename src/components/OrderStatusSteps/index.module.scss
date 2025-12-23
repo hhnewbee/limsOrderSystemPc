@@ -1,0 +1,61 @@
+.cardContainer {
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.03); // 轻微阴影，更精致
+  background: #fff;
+  overflow: hidden;
+
+  // 覆盖 Antd Card 头部样式，使其更紧凑
+  :global(.ant-card-head) {
+    min-height: 46px;
+    padding: 0 16px;
+    border-bottom: 1px solid #f0f0f0;
+
+    :global(.ant-card-head-title) {
+      font-size: 14px;
+      font-weight: 600;
+      padding: 12px 0;
+    }
+  }
+
+  :global(.ant-card-body) {
+    padding: 16px 20px; // 左右留白，防止步骤条贴边
+  }
+}
+
+.stepsWrapper {
+  // 针对 Steps 组件内部微调
+  :global(.ant-steps-item-title) {
+    font-size: 13px !important;
+    font-weight: 500;
+    line-height: 24px !important;
+  }
+
+  :global(.ant-steps-item-description) {
+    padding-bottom: 8px; // 步骤之间的垂直间距
+  }
+
+  // 未完成的步骤颜色淡一点
+  :global(.ant-steps-item-wait .ant-steps-item-icon > .ant-steps-icon) {
+    color: rgba(0, 0, 0, 0.25);
+  }
+  :global(.ant-steps-item-wait .ant-steps-item-title) {
+    color: rgba(0, 0, 0, 0.45) !important;
+  }
+}
+
+.timeTag {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 4px;
+  padding: 2px 6px;
+  background-color: #f5f5f5;
+  border-radius: 4px;
+  color: #8c8c8c;
+  font-size: 11px;
+  line-height: 1.5;
+
+  .timeIcon {
+    margin-right: 4px;
+    font-size: 10px;
+  }
+}
