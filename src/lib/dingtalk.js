@@ -11,6 +11,10 @@ const YIDA_CONFIG = {
 };
 
 const DINGTALK_API_BASE = 'https://api.dingtalk.com';
+let tokenCache = {
+  value: null,
+  expiresAt: 0
+};
 
 // 调试日志函数
 function debugLog(title, data) {
@@ -28,6 +32,11 @@ function debugLog(title, data) {
 
 // 获取钉钉访问令牌
 async function getAccessToken() {
+  const now = Date.now();
+  // 如果缓存存在且离过期还有5分钟以上，直接使用
+  if (tokenCache.value && tokenCache.expiresAt > now + 300000) {
+    return tokenCache.value;
+  }
   const appKey = process.env.DINGTALK_APP_KEY;
   const appSecret = process.env.DINGTALK_APP_SECRET;
   
@@ -50,7 +59,12 @@ async function getAccessToken() {
       appKey,
       appSecret
     });
-    
+
+    // 更新缓存
+    tokenCache.value = response.data.accessToken;
+    // expireIn 是秒，转为毫秒，并减去一点缓冲时间
+    tokenCache.expiresAt = now + (response.data.expireIn * 1000);
+
     debugLog('获取AccessToken - 响应', {
       accessToken: response.data.accessToken ? `${response.data.accessToken.substring(0, 20)}...` : null,
       expireIn: response.data.expireIn
