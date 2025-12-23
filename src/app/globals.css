@@ -61,12 +61,12 @@ body {
   width: 100%;
 }
 
-/* 覆盖 Ant Design 默认样式 */
-:global(.ant-form-item) {
+/* 覆盖 Ant Design 默认样式 - 已修复：移除 :global() */
+.ant-form-item {
   margin-bottom: 12px;
 }
 
-:global(.ant-form-item-label > label) {
+.ant-form-item-label > label {
   font-size: 14px !important;
   color: #262626 !important;
 }
@@ -86,21 +86,22 @@ body {
   align-items: center;
 }
 
-/* 自定义 Ant Design 输入框高度 */
-:global(.ant-input),
-:global(.ant-input-number),
-:global(.ant-select-selector),
-:global(.ant-picker) {
+/* 自定义 Ant Design 输入框高度 - 已修复：移除 :global() */
+.ant-input,
+.ant-input-number,
+.ant-select-selector,
+.ant-picker {
   font-size: 15px !important;
   height: 36px !important;
 }
 
-:global(.ant-input-lg) {
+.ant-input-lg {
   font-size: 16px !important;
   height: 40px !important;
 }
 
-:global(.ant-form-item-label > label) {
+/* 重复的定义保留，但移除了 :global */
+.ant-form-item-label > label {
   font-size: 14px;
   color: #262626;
 }

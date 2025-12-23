@@ -18,14 +18,15 @@
     "axios": "^1.7.2",
     "dayjs": "^1.11.12",
     "mysql2": "^3.11.0",
-    "next": "14.2.21",
-    "react": "^18.3.1",
-    "react-dom": "^18.3.1",
+    "next": "^16.1.1",
+    "react": "^19.2.3",
+    "react-dom": "^19.2.3",
     "react-window": "^1.8.10",
+    "sass": "^1.97.1",
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "eslint": "^8",
-    "eslint-config-next": "14.2.21"
+    "eslint": "^9.39.2",
+    "eslint-config-next": "^16.1.1"
   }
 }

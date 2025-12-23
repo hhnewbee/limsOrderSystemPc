@@ -27,15 +27,12 @@
 
   /* 针对内部 Ant Design 按钮的样式微调 */
   /* 使用 :global 是为了覆盖 antd 的全局样式类 */
-  :global {
-    .ant-btn {
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-
-      &:hover {
-        transform: translateY(-2px); /* 悬浮上移 */
-        box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-      }
+  :global(.ant-btn) {
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    &:hover {
+      transform: translateY(-2px); /* 悬浮上移 */
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
     }
   }
 }
