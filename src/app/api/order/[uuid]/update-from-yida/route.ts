@@ -1,38 +1,9 @@
+// src/app/api/order/[uuid]/update-from-yida/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
-import { formatDateTimeForPostgres } from '@/lib/orderService';
-
-// 1. 定义字段映射关系 (JSON key -> DB column)
-// 只有在这个列表里的字段才允许被更新，防止恶意注入或错误字段
-const DB_FIELD_MAPPING: Record<string, string> = {
-  // 核心标识
-  formInstanceId: 'form_instance_id',
-
-  // 状态字段 (最常用的)
-  tableStatus: 'table_status', // 钉钉流程状态，如"审核通过"
-  status: 'status',            // 本地系统状态，如"submitted"
-
-  // 客户信息
-  customerUnit: 'customer_unit',
-  customerName: 'customer_name',
-  customerPhone: 'customer_phone',
-  department: 'department',
-
-  // 项目信息
-  projectNumber: 'project_number',
-  projectType: 'project_type',
-  salesmanName: 'salesman_name',
-
-  // 费用信息
-  unitPrice: 'unit_price',
-  otherExpenses: 'other_expenses',
-
-  // 样品/运送相关
-  shippingMethod: 'shipping_method',
-  expressCompanyWaybill: 'express_company_waybill',
-  shippingTime: 'shipping_time',
-  needBioinformaticsAnalysis: 'need_bioinformatics_analysis'
-};
+// 🟢 引入转换器和类型
+import { appToDb, yidaToApp } from '@/lib/converters';
+import { YidaRawFormData, OrderFormData } from '@/types/order';
 
 interface RouteParams {
   params: Promise<{ uuid: string }>;
@@ -47,70 +18,65 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   let body: Record<string, any>;
   try {
     body = await request.json();
-    console.log('[API-YidaSync] 接收到的部分数据:', JSON.stringify(body, null, 2));
+    console.log('[API-YidaSync] 接收到的数据:', JSON.stringify(body, null, 2));
   } catch (e) {
     return NextResponse.json({ error: '无效的 JSON 数据' }, { status: 400 });
   }
 
-  // 如果没有数据，直接返回
   if (!body || Object.keys(body).length === 0) {
-    return NextResponse.json({ message: '未接收到有效数据，无需更新' });
+    return NextResponse.json({ message: '未接收到有效数据' });
   }
 
   try {
-    // 2. 动态构建 Supabase Update Object
-    const updatePayload: Record<string, any> = {};
+    let appData: Partial<OrderFormData> = {};
 
-    for (const [key, value] of Object.entries(body)) {
-      // 检查字段是否在允许的映射表中
-      const dbColumn = DB_FIELD_MAPPING[key];
+    // 🟢 智能判断数据源格式
+    // 检查是否包含典型的宜搭字段 (PascalCase)
+    const isYidaFormat = 'CustomerUnit' in body || 'UniqueIdentification' in body || 'TableStatus' in body;
 
-      if (dbColumn) {
-        let finalValue = value;
-
-        // 特殊处理布尔值 (Postgres 使用 boolean 类型，区别于 MySQL 的 tinyint)
-        if (key === 'needBioinformaticsAnalysis') {
-          finalValue = !!value;
-        }
-
-        // 特殊处理时间字段 (确保为 ISO String)
-        if (key === 'shippingTime') {
-          finalValue = formatDateTimeForPostgres(value as string);
-        }
-
-        updatePayload[dbColumn] = finalValue;
-      }
+    if (isYidaFormat) {
+      console.log('[API-YidaSync] 识别为宜搭原始格式 (PascalCase)，正在转换...');
+      // 转换为 App 格式 (CamelCase)
+      appData = yidaToApp(body as YidaRawFormData);
+    } else {
+      console.log('[API-YidaSync] 识别为应用内部格式 (CamelCase)');
+      // 已经是 App 格式，直接使用（过滤掉不相关字段的任务交给 appToDb）
+      appData = body as Partial<OrderFormData>;
     }
 
+    // 🟢 转换为数据库格式 (SnakeCase)
+    // appToDb 会自动过滤掉不存在于 DBOrder 接口中的字段，防止 SQL 注入或报错
+    const updatePayload = appToDb(appData);
+
+    // 移除不允许更新的主键或核心字段 (如果 appToDb 包含了它们)
+    delete updatePayload.id;
+    delete updatePayload.uuid;
+    // form_instance_id 通常允许更新(如果原来为空)，视业务而定
+
     if (Object.keys(updatePayload).length === 0) {
-      console.log('[API-YidaSync] 没有匹配到可更新的数据库字段，跳过');
-      return NextResponse.json({ message: '没有匹配的字段需要更新' });
+      console.log('[API-YidaSync] 没有有效的数据库字段需要更新');
+      return NextResponse.json({ message: '无有效更新字段' });
     }
 
     console.log('[API-YidaSync] 执行 Supabase 更新:', updatePayload);
 
-    // 3. 执行更新
     const { data, error } = await supabase
-      .from('orders')
-      .update(updatePayload)
-      .eq('uuid', uuid)
-      .select('id'); // 必须 select 才能确认是否匹配到了行
+        .from('orders')
+        .update(updatePayload)
+        .eq('uuid', uuid)
+        .select('id');
 
-    if (error) {
-      throw error;
-    }
+    if (error) throw error;
 
-    // 检查是否实际匹配到了订单
     if (!data || data.length === 0) {
-      console.warn('[API-YidaSync] 未找到对应 UUID 的订单，更新失败');
+      console.warn('[API-YidaSync] 未找到对应 UUID 的订单');
       return NextResponse.json({ error: '订单不存在' }, { status: 404 });
     }
 
-    console.log(`[API-YidaSync] 更新成功`);
     return NextResponse.json({
       success: true,
       message: '数据更新成功',
-      updatedFields: Object.keys(body).filter(k => DB_FIELD_MAPPING[k])
+      updatedFields: Object.keys(updatePayload)
     });
 
   } catch (error: any) {

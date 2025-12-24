@@ -7,7 +7,7 @@ import MultiGroupComparisonTable from '@/components/MultiGroupComparisonTable';
 import ModuleCard from "@/components/ModuleCard";
 import {BarChartOutlined} from "@ant-design/icons";
 
-export default function SampleAnalysisModule({ data, onChange, disabled, errors }) {
+export default function SampleAnalysisModule({ data, onBlur, disabled, errors }) {
   // 从样本清单中提取分组名称
   const groupNames = useMemo(() => {
     if (!data.sampleList || data.sampleList.length === 0) {
@@ -23,15 +23,15 @@ export default function SampleAnalysisModule({ data, onChange, disabled, errors 
   }, [data.sampleList]);
 
   const handleSampleListChange = (newList) => {
-    onChange('sampleList', newList);
+    onBlur('sampleList', newList);
   };
 
   const handlePairwiseComparisonChange = (newList) => {
-    onChange('pairwiseComparison', newList);
+    onBlur('pairwiseComparison', newList);
   };
 
   const handleMultiGroupComparisonChange = (newList) => {
-    onChange('multiGroupComparison', newList);
+    onBlur('multiGroupComparison', newList);
   };
 
   return (

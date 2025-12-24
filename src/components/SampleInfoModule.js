@@ -25,7 +25,7 @@ const REMAINING_SAMPLE_HANDLING = [
   '保存样品： 3-6个月 1000元/月'
 ];
 
-export default function SampleInfoModule({ data, onChange, disabled, errors }) {
+export default function SampleInfoModule({ data, onBlur, onChange, disabled, errors }) {
   return (
     <ModuleCard
       title="样品信息"
