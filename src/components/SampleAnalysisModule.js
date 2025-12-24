@@ -1,13 +1,13 @@
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useCallback } from 'react';
 import SampleListTable from '@/components/SampleListTable';
 import PairwiseComparisonTable from '@/components/PairwiseComparisonTable';
 import MultiGroupComparisonTable from '@/components/MultiGroupComparisonTable';
 import ModuleCard from "@/components/ModuleCard";
-import {BarChartOutlined} from "@ant-design/icons";
+import { BarChartOutlined } from "@ant-design/icons";
 
-export default function SampleAnalysisModule({ data, onBlur, disabled, errors }) {
+export default function SampleAnalysisModule({ data, onChange, onBlur, disabled, errors }) {
   // 从样本清单中提取分组名称
   const groupNames = useMemo(() => {
     if (!data.sampleList || data.sampleList.length === 0) {
@@ -22,17 +22,17 @@ export default function SampleAnalysisModule({ data, onBlur, disabled, errors })
     return Array.from(names);
   }, [data.sampleList]);
 
-  const handleSampleListChange = (newList) => {
-    onBlur('sampleList', newList);
-  };
+  const handleSampleListChange = useCallback((newList) => {
+    onChange('sampleList', newList);
+  }, [onChange]);
 
-  const handlePairwiseComparisonChange = (newList) => {
-    onBlur('pairwiseComparison', newList);
-  };
+  const handlePairwiseComparisonChange = useCallback((newList) => {
+    onChange('pairwiseComparison', newList);
+  }, [onChange]);
 
-  const handleMultiGroupComparisonChange = (newList) => {
-    onBlur('multiGroupComparison', newList);
-  };
+  const handleMultiGroupComparisonChange = useCallback((newList) => {
+    onChange('multiGroupComparison', newList);
+  }, [onChange]);
 
   return (
     <ModuleCard title="样品分析" icon={<BarChartOutlined />}>

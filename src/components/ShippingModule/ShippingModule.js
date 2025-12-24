@@ -3,12 +3,12 @@
 import { Form, Radio, Input, DatePicker } from 'antd';
 import dayjs from 'dayjs';
 import styles from './ShippingModule.module.scss';
-import {TruckOutlined} from "@ant-design/icons";
+import { TruckOutlined } from "@ant-design/icons";
 import ModuleCard from "@/components/ModuleCard";
 
-export default function ShippingModule({ data, onChange, disabled, errors }) {
+export default function ShippingModule({ data, onChange, onBlur, disabled, errors }) {
   return (
-    <ModuleCard title="样品运送" icon={<TruckOutlined/>}>
+    <ModuleCard title="样品运送" icon={<TruckOutlined />}>
       <Form layout="vertical">
         <Form.Item
           label="运送方式"
@@ -40,6 +40,7 @@ export default function ShippingModule({ data, onChange, disabled, errors }) {
                 <Input
                   value={data.expressCompanyWaybill}
                   onChange={(e) => onChange('expressCompanyWaybill', e.target.value)}
+                  onBlur={() => onBlur('expressCompanyWaybill')}
                   disabled={disabled}
                   placeholder="请输入快递公司及运单号"
                 />
@@ -54,6 +55,7 @@ export default function ShippingModule({ data, onChange, disabled, errors }) {
                 <DatePicker
                   value={data.shippingTime ? dayjs(data.shippingTime) : null}
                   onChange={(date) => onChange('shippingTime', date ? date.toISOString() : null)}
+                  onBlur={() => onBlur('shippingTime')}
                   disabled={disabled}
                   style={{ width: '100%' }}
                   placeholder="请选择送样时间"

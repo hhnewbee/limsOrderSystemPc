@@ -73,10 +73,15 @@ export function useOrderLogic(
     }, [uuid, loadOrderData]);
 
     // --- 2. 脏检查 ---
+    // --- 2. 脏检查 (优化：增加 500ms 防抖，避免打字卡顿) ---
     useEffect(() => {
         if (orderData && initialDataRef.current) {
-            const currentData = JSON.stringify(orderData);
-            setHasUnsavedChanges(currentData !== initialDataRef.current);
+            const timer = setTimeout(() => {
+                const currentData = JSON.stringify(orderData);
+                setHasUnsavedChanges(currentData !== initialDataRef.current);
+            }, 500);
+
+            return () => clearTimeout(timer);
         }
     }, [orderData]);
 

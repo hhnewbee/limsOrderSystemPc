@@ -2,7 +2,7 @@
 
 import { Form, Input, Select, InputNumber, Radio } from 'antd';
 import { EditableInput, EditableSelect, EditableTextArea, ReadOnlyText } from './ReadOnlyField';
-import {ExperimentOutlined} from "@ant-design/icons";
+import { ExperimentOutlined } from "@ant-design/icons";
 import ModuleCard from "@/components/ModuleCard";
 
 const { TextArea } = Input;
@@ -44,154 +44,164 @@ export default function SampleInfoModule({ data, onBlur, onChange, disabled, err
             />
           </Form.Item>
           <Form.Item
-              label="检测数量"
-              className="form-item"
-              required
-              validateStatus={errors?.detectionQuantity ? 'error' : ''}
-              help={errors?.detectionQuantity}
+            label="检测数量"
+            className="form-item"
+            required
+            validateStatus={errors?.detectionQuantity ? 'error' : ''}
+            help={errors?.detectionQuantity}
           >
             <InputNumber
-                value={data.detectionQuantity}
-                onChange={(value) => onChange('detectionQuantity', value)}
-                disabled={disabled}
-                min={1}
-                style={{ width: '100%' }}
-                placeholder="请输入检测数量"
+              value={data.detectionQuantity}
+              onChange={(value) => onChange('detectionQuantity', value)}
+              onBlur={() => onBlur('detectionQuantity')}
+              disabled={disabled}
+              min={1}
+              style={{ width: '100%' }}
+              placeholder="请输入检测数量"
             />
           </Form.Item>
           <Form.Item
-              label="物种名称"
-              className="form-item"
-              required
-              validateStatus={errors?.speciesName ? 'error' : ''}
-              help={errors?.speciesName}
-          >
-              <Input
-                  value={data.speciesName}
-                  onChange={(e) => onChange('speciesName', e.target.value)}
-                  disabled={disabled}
-                  placeholder="请输入物种名称"
-              />
-          </Form.Item>
-          <Form.Item
-              label="物种拉丁名"
-              className="form-item"
-              required
-              validateStatus={errors?.speciesLatinName ? 'error' : ''}
-              help={errors?.speciesLatinName}
-          >
-              <Input
-                  value={data.speciesLatinName}
-                  onChange={(e) => onChange('speciesLatinName', e.target.value)}
-                  disabled={disabled}
-                  placeholder="请输入物种拉丁名"
-              />
-          </Form.Item>
-          <Form.Item
-              label="样本类型"
-              className="form-item"
-              required
-              validateStatus={errors?.sampleType ? 'error' : ''}
-              help={errors?.sampleType}
-          >
-            <Select
-                value={data.sampleType}
-                onChange={(value) => onChange('sampleType', value)}
-                disabled={disabled}
-                placeholder="请选择样本类型"
-                options={SAMPLE_TYPES.map(type => ({ label: type, value: type }))}
-            />
-          </Form.Item>
-          <Form.Item
-              label="样本类型详述"
-              className="form-item"
-              required
-              validateStatus={errors?.sampleTypeDetail ? 'error' : ''}
-              help={errors?.sampleTypeDetail}
+            label="物种名称"
+            className="form-item"
+            required
+            validateStatus={errors?.speciesName ? 'error' : ''}
+            help={errors?.speciesName}
           >
             <Input
-                value={data.sampleTypeDetail}
-                onChange={(e) => onChange('sampleTypeDetail', e.target.value)}
-                disabled={disabled}
-                placeholder="请输入样本类型详述"
+              value={data.speciesName}
+              onChange={(e) => onChange('speciesName', e.target.value)}
+              onBlur={() => onBlur('speciesName')}
+              disabled={disabled}
+              placeholder="请输入物种名称"
             />
           </Form.Item>
           <Form.Item
-              label="细胞数"
-              className="form-item"
+            label="物种拉丁名"
+            className="form-item"
+            required
+            validateStatus={errors?.speciesLatinName ? 'error' : ''}
+            help={errors?.speciesLatinName}
+          >
+            <Input
+              value={data.speciesLatinName}
+              onChange={(e) => onChange('speciesLatinName', e.target.value)}
+              onBlur={() => onBlur('speciesLatinName')}
+              disabled={disabled}
+              placeholder="请输入物种拉丁名"
+            />
+          </Form.Item>
+          <Form.Item
+            label="样本类型"
+            className="form-item"
+            required
+            validateStatus={errors?.sampleType ? 'error' : ''}
+            help={errors?.sampleType}
+          >
+            <Select
+              value={data.sampleType}
+              onChange={(value) => onChange('sampleType', value)}
+              onBlur={() => onBlur('sampleType')}
+              disabled={disabled}
+              placeholder="请选择样本类型"
+              options={SAMPLE_TYPES.map(type => ({ label: type, value: type }))}
+            />
+          </Form.Item>
+          <Form.Item
+            label="样本类型详述"
+            className="form-item"
+            required
+            validateStatus={errors?.sampleTypeDetail ? 'error' : ''}
+            help={errors?.sampleTypeDetail}
+          >
+            <Input
+              value={data.sampleTypeDetail}
+              onChange={(e) => onChange('sampleTypeDetail', e.target.value)}
+              onBlur={() => onBlur('sampleTypeDetail')}
+              disabled={disabled}
+              placeholder="请输入样本类型详述"
+            />
+          </Form.Item>
+          <Form.Item
+            label="细胞数"
+            className="form-item"
           >
             <InputNumber
-                value={data.cellCount}
-                onChange={(value) => onChange('cellCount', value)}
-                disabled={disabled}
-                min={0}
-                style={{ width: '100%' }}
-                placeholder="请输入细胞数"
+              value={data.cellCount}
+              onChange={(value) => onChange('cellCount', value)}
+              onBlur={() => onBlur('cellCount')}
+              disabled={disabled}
+              min={0}
+              style={{ width: '100%' }}
+              placeholder="请输入细胞数"
             />
           </Form.Item>
           <Form.Item
-              label="保存介质"
-              className="form-item"
+            label="保存介质"
+            className="form-item"
           >
             <Select
-                value={data.preservationMedium}
-                onChange={(value) => onChange('preservationMedium', value)}
-                disabled={disabled}
-                placeholder="请选择保存介质"
-                options={PRESERVATION_MEDIUMS.map(medium => ({ label: medium, value: medium }))}
-                allowClear
+              value={data.preservationMedium}
+              onChange={(value) => onChange('preservationMedium', value)}
+              onBlur={() => onBlur('preservationMedium')}
+              disabled={disabled}
+              placeholder="请选择保存介质"
+              options={PRESERVATION_MEDIUMS.map(medium => ({ label: medium, value: medium }))}
+              allowClear
             />
           </Form.Item>
           <Form.Item
-              label="样本前处理方式"
-              className="form-item"
+            label="样本前处理方式"
+            className="form-item"
           >
             <Input
-                value={data.samplePreprocessing}
-                onChange={(e) => onChange('samplePreprocessing', e.target.value)}
-                disabled={disabled}
-                placeholder="请输入样本前处理方式"
+              value={data.samplePreprocessing}
+              onChange={(e) => onChange('samplePreprocessing', e.target.value)}
+              onBlur={() => onBlur('samplePreprocessing')}
+              disabled={disabled}
+              placeholder="请输入样本前处理方式"
             />
           </Form.Item>
           <Form.Item
-              label="是否需要生信分析"
-              className="form-item"
+            label="是否需要生信分析"
+            className="form-item"
           >
             <Radio.Group
-                value={data.needBioinformaticsAnalysis}
-                onChange={(e) => onChange('needBioinformaticsAnalysis', e.target.value)}
-                disabled={disabled}
+              value={data.needBioinformaticsAnalysis}
+              onChange={(e) => onChange('needBioinformaticsAnalysis', e.target.value)}
+              disabled={disabled}
             >
               <Radio value={true}>需要</Radio>
               <Radio value={false}>不需要</Radio>
             </Radio.Group>
           </Form.Item>
           <Form.Item
-              label="剩余样品处理方式"
-              className="form-item"
-              required
-              validateStatus={errors?.remainingSampleHandling ? 'error' : ''}
-              help={errors?.remainingSampleHandling}
+            label="剩余样品处理方式"
+            className="form-item"
+            required
+            validateStatus={errors?.remainingSampleHandling ? 'error' : ''}
+            help={errors?.remainingSampleHandling}
           >
             <Select
-                value={data.remainingSampleHandling}
-                onChange={(value) => onChange('remainingSampleHandling', value)}
-                disabled={disabled}
-                placeholder="请选择剩余样品处理方式"
-                options={REMAINING_SAMPLE_HANDLING.map(option => ({ label: option, value: option }))}
+              value={data.remainingSampleHandling}
+              onChange={(value) => onChange('remainingSampleHandling', value)}
+              onBlur={() => onBlur('remainingSampleHandling')}
+              disabled={disabled}
+              placeholder="请选择剩余样品处理方式"
+              options={REMAINING_SAMPLE_HANDLING.map(option => ({ label: option, value: option }))}
             />
           </Form.Item>
 
           <Form.Item
-              label="特殊说明（如果您的样品有特殊要求，请备注说明）"
-              className="form-item"
+            label="特殊说明（如果您的样品有特殊要求，请备注说明）"
+            className="form-item"
           >
             <TextArea
-                value={data.specialInstructions}
-                onChange={(e) => onChange('specialInstructions', e.target.value)}
-                disabled={disabled}
-                rows={3}
-                placeholder="请输入特殊说明"
+              value={data.specialInstructions}
+              onChange={(e) => onChange('specialInstructions', e.target.value)}
+              onBlur={() => onBlur('specialInstructions')}
+              disabled={disabled}
+              rows={3}
+              placeholder="请输入特殊说明"
             />
           </Form.Item>
         </div>

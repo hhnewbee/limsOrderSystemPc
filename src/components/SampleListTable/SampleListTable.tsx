@@ -1,12 +1,30 @@
 'use client';
 
-import { useState, useCallback, useRef, memo, useEffect } from 'react';
-import { Button, Input, Select, InputNumber, Upload, message } from 'antd';
-import { PlusOutlined, DeleteOutlined, UploadOutlined, DownloadOutlined, CopyOutlined } from '@ant-design/icons';
+import { useState, useCallback, useRef, memo, useEffect, CSSProperties } from 'react';
+import { Button, Input, Select, InputNumber, Upload, message, Tooltip, Spin } from 'antd';
+import { PlusOutlined, DeleteOutlined, UploadOutlined, DownloadOutlined, CopyOutlined, LoadingOutlined } from '@ant-design/icons';
 // 引入 VariableSizeList 支持动态高度
-import { VariableSizeList as List } from 'react-window';
-import * as XLSX from 'xlsx';
+import { VariableSizeList as List, ListChildComponentProps } from 'react-window';
 import styles from './SampleListTable.module.scss';
+
+// --- 类型定义 ---
+export interface SampleItem {
+    sampleName: string;
+    analysisName?: string;
+    groupName?: string;
+    detectionOrStorage: string;
+    sampleTubeCount: number;
+    experimentDescription: string;
+    [key: string]: any;
+}
+
+interface SampleListTableProps {
+    data: SampleItem[];
+    onChange: (newData: SampleItem[]) => void;
+    disabled?: boolean;
+    needBioinformaticsAnalysis?: boolean | string; // 兼容后端可能返回字符串
+    errors?: any;
+}
 
 const DETECTION_OPTIONS = [
     { label: '检测', value: '检测' },
@@ -19,9 +37,9 @@ const ROW_HEIGHT_ERROR = 90;  // 出错时的行高（给错误提示留空间�
 const TABLE_HEIGHT = 500;     // 表格可视区域总高度
 
 // 表格列配置
-const getColumns = (needBioinformaticsAnalysis) => {
+const getColumns = (needBioinformaticsAnalysis: boolean) => {
     const baseColumns = [
-        { key: 'sequenceNo', title: '序号', width: 70, flex: false },
+        { key: 'sequenceNo', title: '序号', width: 70, flex: false, required: false },
         { key: 'sampleName', title: '样本名称', width: 160, required: true, flex: false },
     ];
 
@@ -35,15 +53,15 @@ const getColumns = (needBioinformaticsAnalysis) => {
     baseColumns.push(
         { key: 'detectionOrStorage', title: '检测或暂存', width: 130, required: true, flex: false },
         { key: 'sampleTubeCount', title: '样品管数', width: 100, required: true, flex: false },
-        { key: 'experimentDescription', title: '实验设计描述及样本备注', width: 250, flex: true },
-        { key: 'actions', title: '操作', width: 100, flex: false }
+        { key: 'experimentDescription', title: '实验设计描述及样本备注', width: 250, flex: true, required: false },
+        { key: 'actions', title: '操作', width: 100, flex: false, required: false }
     );
 
     return baseColumns;
 };
 
-// 带错误提示的组件（现在错误提示是普通块级元素，会占据空间）
-const InputWithError = ({ value, onChange, disabled, error }) => (
+// 带错误提示的组件
+const InputWithError = ({ value, onChange, disabled, error }: any) => (
     <div style={{ width: '100%' }}>
         <Input
             value={value}
@@ -57,14 +75,14 @@ const InputWithError = ({ value, onChange, disabled, error }) => (
 );
 
 // 只读文本
-const ReadOnlyText = ({ value }) => (
+const ReadOnlyText = ({ value }: { value: any }) => (
     <div style={{ fontSize: '15px', color: '#595959', marginTop: 4 }}>
         {value || '-'}
     </div>
 );
 
 // 行渲染组件
-const TableRow = memo(function TableRow({ index, style, data: itemData }) {
+const TableRow = memo(function TableRow({ index, style, data: itemData }: ListChildComponentProps) {
     const { items, errors, disabled, needBioinformaticsAnalysis, onCellChange, onDeleteRow, onCopyRow } = itemData;
     const item = items[index];
     const rowErrors = errors?.[index] || {};
@@ -80,7 +98,7 @@ const TableRow = memo(function TableRow({ index, style, data: itemData }) {
                 ) : (
                     <InputWithError
                         value={item.sampleName}
-                        onChange={(e) => onCellChange(index, 'sampleName', e.target.value)}
+                        onChange={(e: any) => onCellChange(index, 'sampleName', e.target.value)}
                         error={rowErrors.sampleName}
                     />
                 )}
@@ -93,7 +111,7 @@ const TableRow = memo(function TableRow({ index, style, data: itemData }) {
                         ) : (
                             <InputWithError
                                 value={item.analysisName}
-                                onChange={(e) => onCellChange(index, 'analysisName', e.target.value)}
+                                onChange={(e: any) => onCellChange(index, 'analysisName', e.target.value)}
                                 error={rowErrors.analysisName}
                             />
                         )}
@@ -104,7 +122,7 @@ const TableRow = memo(function TableRow({ index, style, data: itemData }) {
                         ) : (
                             <InputWithError
                                 value={item.groupName}
-                                onChange={(e) => onCellChange(index, 'groupName', e.target.value)}
+                                onChange={(e: any) => onCellChange(index, 'groupName', e.target.value)}
                                 error={rowErrors.groupName}
                             />
                         )}
@@ -174,10 +192,11 @@ const TableRow = memo(function TableRow({ index, style, data: itemData }) {
     );
 });
 
-export default function SampleListTable({ data, onChange, disabled, needBioinformaticsAnalysis, errors }) {
-    const [selectedRows, setSelectedRows] = useState(new Set());
-    const listRef = useRef(null);
-    const columns = getColumns(needBioinformaticsAnalysis);
+function SampleListTable({ data, onChange, disabled, needBioinformaticsAnalysis, errors }: SampleListTableProps) {
+    const [importing, setImporting] = useState(false);
+    const listRef = useRef<List>(null);
+    const needBio = needBioinformaticsAnalysis === true || needBioinformaticsAnalysis === 'true';
+    const columns = getColumns(needBio);
 
     // 核心逻辑：当 data 或 errors 发生变化时，通知列表重新计算高度
     useEffect(() => {
@@ -187,7 +206,7 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
     }, [data, errors]);
 
     // 动态计算行高函数
-    const getItemSize = useCallback((index) => {
+    const getItemSize = useCallback((index: number) => {
         const rowErrors = errors?.[index];
         // 检查该行是否有任意字段报错
         const hasError = rowErrors && Object.values(rowErrors).some(err => !!err);
@@ -200,37 +219,40 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
     };
 
     const handleAddRow = useCallback(() => {
-        const newRow = {
+        const newRow: SampleItem = {
             sampleName: '', analysisName: '', groupName: '',
             detectionOrStorage: '检测', sampleTubeCount: 1, experimentDescription: ''
         };
         onChange([...data, newRow]);
     }, [data, onChange]);
 
-    const handleCopyRow = useCallback((index) => {
+    const handleCopyRow = useCallback((index: number) => {
         const newData = [...data];
         newData.splice(index + 1, 0, { ...data[index] });
         onChange(newData);
         message.success('行已复制');
     }, [data, onChange]);
 
-    const handleDeleteRow = useCallback((index) => {
+    const handleDeleteRow = useCallback((index: number) => {
         onChange(data.filter((_, i) => i !== index));
     }, [data, onChange]);
 
-    const handleCellChange = useCallback((index, field, value) => {
+    const handleCellChange = useCallback((index: number, field: string, value: any) => {
         const newData = [...data];
         newData[index] = { ...newData[index], [field]: value };
         onChange(newData);
     }, [data, onChange]);
 
-    const handleImport = useCallback((file) => {
+    const handleImport = useCallback((file: File) => {
+        setImporting(true); // 🟢 Start loading
         const reader = new FileReader();
-        reader.onload = (e) => {
+        reader.onload = async (e) => {
             try {
-                const workbook = XLSX.read(e.target.result, { type: 'binary' });
-                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-                const importedData = jsonData.map(row => ({
+                // 动态导入 xlsx，减少首屏体积
+                const XLSX = await import('xlsx');
+                const workbook = XLSX.read(e.target?.result, { type: 'binary' });
+                const jsonData = XLSX.utils.sheet_to_json<any>(workbook.Sheets[workbook.SheetNames[0]]);
+                const importedData: SampleItem[] = jsonData.map(row => ({
                     sampleName: row['样本名称'] || '',
                     analysisName: row['分析名称'] || '',
                     groupName: row['分组名称'] || '',
@@ -240,21 +262,29 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
                 }));
                 onChange([...data, ...importedData]);
                 message.success(`成功导入 ${importedData.length} 条数据`);
-            } catch (err) { message.error('导入失败'); }
+            } catch (err) {
+                console.error(err);
+                message.error('导入失败，请检查文件格式');
+            } finally {
+                setImporting(false); // 🟢 End loading
+            }
         };
-        reader.readAsBinaryString(file);
+        // 使用 setTimeout 让 React 有机会渲染 setImporting(true)
+        setTimeout(() => reader.readAsBinaryString(file), 0);
         return false;
     }, [data, onChange]);
 
-    const handleDownloadTemplate = () => {
-        const worksheet = XLSX.utils.json_to_sheet([{'样本名称': 'Sample1', '分析名称': 'Ana1', '分组名称': 'GroupA', '检测或暂存': '检测', '样品管数': 1}]);
+    const handleDownloadTemplate = async () => {
+        // 动态导入 xlsx
+        const XLSX = await import('xlsx');
+        const worksheet = XLSX.utils.json_to_sheet([{ '样本名称': 'Sample1', '分析名称': 'Ana1', '分组名称': 'GroupA', '检测或暂存': '检测', '样品管数': 1 }]);
         const workbook = XLSX.utils.book_new();
         XLSX.utils.book_append_sheet(workbook, worksheet, '模板');
         XLSX.writeFile(workbook, '样本清单模板.xlsx');
     };
 
     const itemData = {
-        items: data, errors, disabled, needBioinformaticsAnalysis,
+        items: data, errors, disabled, needBioinformaticsAnalysis: needBio,
         onCellChange: handleCellChange, onDeleteRow: handleDeleteRow, onCopyRow: handleCopyRow
     };
 
@@ -273,7 +303,9 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
                         <>
                             <Button type="primary" icon={<PlusOutlined />} onClick={handleAddRow}>添加样本行</Button>
                             <Upload accept=".xlsx,.xls" showUploadList={false} beforeUpload={handleImport}>
-                                <Button icon={<UploadOutlined />}>批量导入</Button>
+                                <Button icon={importing ? <LoadingOutlined /> : <UploadOutlined />} disabled={importing}>
+                                    {importing ? '导入中...' : '批量导入'}
+                                </Button>
                             </Upload>
                         </>
                     )}
@@ -305,7 +337,7 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
                         ref={listRef}
                         height={Math.min(TABLE_HEIGHT, calculateTotalHeight() || 100)}
                         itemCount={data.length}
-                        itemSize={getItemSize} // 传入函数
+                        itemSize={getItemSize}
                         width="100%"
                         itemData={itemData}
                     >
@@ -320,3 +352,6 @@ export default function SampleListTable({ data, onChange, disabled, needBioinfor
         </div>
     );
 }
+
+// 使用 memo 优化渲染性能
+export default memo(SampleListTable);
