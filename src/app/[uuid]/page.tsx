@@ -18,6 +18,7 @@ import OrderStatusSteps from "@/components/OrderStatusSteps";
 
 // 引入 Hook
 import { useOrderLogic } from '@/hooks/useOrderLogic';
+import { ORDER_STATUS } from '@/constants/orderStatus';
 
 export default function OrderPage() {
     const { message, modal } = App.useApp();
@@ -107,7 +108,12 @@ export default function OrderPage() {
 
                             <div style={{ marginBottom: '16px' }}>
                                 <OrderStatusSteps
-                                    currentStatus={orderData.tableStatus || orderData.status || ''}
+                                    currentStatus={
+                                        (orderData.status === ORDER_STATUS.SUBMITTED &&
+                                            !([ORDER_STATUS.REJECTED, ORDER_STATUS.CUSTOMER_MODIFYING, ORDER_STATUS.REJECTED_AUDIT] as string[]).includes(orderData.tableStatus))
+                                            ? ORDER_STATUS.SUBMITTED
+                                            : (orderData.tableStatus || orderData.status || '')
+                                    }
                                     data={orderData}
                                 />
                             </div>

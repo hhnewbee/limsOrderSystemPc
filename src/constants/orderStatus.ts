@@ -18,6 +18,7 @@ export const ORDER_STATUS = {
     SUBMITTED_CN: '已提交',      // 可能存在的中文标识
     AUDIT_PENDING: '待审核',
     AUDITING: '审核中',
+    AUDIT_COMPLETED: '审核完成',
     APPROVING: '审批中',
 
     // --- 收样/发货阶段 ---
@@ -27,20 +28,35 @@ export const ORDER_STATUS = {
     SAMPLE_COMPLETED: '收样完成',
 
     // --- 实验阶段 ---
+    TESTING_PENDING: '待检测',
+    START_TESTING: '开始检测',
     TESTING: '检测中',
+    TESTING_COMPLETED: '检测完成',
+
+    ANALYSIS_PENDING: '待分析',
+    START_ANALYSIS: '开始分析',
     ANALYSIS: '分析中',
+    ANALYSIS_COMPLETED: '分析完成',
 
     // --- 结算/交付阶段 ---
     INVOICE_PENDING: '待开票',
+    INVOICE_COMPLETED: '开票完成',
     PAYMENT_PENDING: '待付款',
-    DELIVERED: '已交付',
-    COMPLETED: '完成'
+    PAYMENT_COMPLETED: '付款完成',
+    DELIVERED_PENDING: '待交付',
+    DELIVERED: '交付完成', // 对应用户说的“交付完成”
+    COMPLETED: '完成',
+
+    // --- 售后/异常 ---
+    AFTER_SALES: '进入售后阶段',
+    REJECTED_AUDIT: '审批不通过' // 对应用户说的“审批不通过”
 } as const;
 
 // 定义可编辑的状态集合 (用于权限判断)
-export const EDITABLE_STATUSES : string[] = [
+export const EDITABLE_STATUSES: string[] = [
     ORDER_STATUS.CUSTOMER_EDITING,
     ORDER_STATUS.CUSTOMER_MODIFYING,
     ORDER_STATUS.DRAFT,
-    ORDER_STATUS.EDITING
+    ORDER_STATUS.EDITING,
+    ORDER_STATUS.REJECTED_AUDIT // 🔴 Enable editing for audit rejected orders
 ];

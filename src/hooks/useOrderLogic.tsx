@@ -205,7 +205,8 @@ export function useOrderLogic(
 
         if (orderData.status === ORDER_STATUS.SUBMITTED) {
             if (orderData.tableStatus === ORDER_STATUS.CUSTOMER_MODIFYING ||
-                orderData.tableStatus === ORDER_STATUS.REJECTED) {
+                orderData.tableStatus === ORDER_STATUS.REJECTED ||
+                orderData.tableStatus === ORDER_STATUS.REJECTED_AUDIT) {
                 return {
                     text: '被驳回 / 需修改',
                     color: 'error',

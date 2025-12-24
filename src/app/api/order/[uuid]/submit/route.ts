@@ -18,7 +18,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // 1. 预检订单状态
     const { data: order, error } = await supabase
       .from('orders')
-      .select('id, form_instance_id, status')
+      .select('id, form_instance_id, status, table_status')
       .eq('uuid', uuid)
       .single();
 
@@ -26,7 +26,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: '订单不存在' }, { status: 404 });
     }
 
-    if (order.status === 'submitted') {
+    // 允许重新提交的条件：虽然 status='submitted'，但 table_status 是驳回态
+    const isRejected = ['驳回', '客户修改中', '审批不通过'].includes(order.table_status || '');
+
+    if (order.status === 'submitted' && !isRejected) {
       return NextResponse.json({ error: '订单已提交，不能重复提交' }, { status: 400 });
     }
 
