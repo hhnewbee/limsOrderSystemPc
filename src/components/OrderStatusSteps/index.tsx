@@ -153,7 +153,7 @@ const OrderStatusSteps: React.FC<OrderStatusStepsProps> = ({ currentStatus, data
             title="项目进度"
             size="small"
             className={styles.cardContainer}
-            bordered={false}
+            variant="borderless"
         >
             <div className={styles.stepsWrapper}>
                 <ConfigProvider

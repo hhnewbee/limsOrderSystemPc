@@ -1,6 +1,6 @@
 'use client';
-
-import { ConfigProvider } from 'antd';
+import '@ant-design/v5-patch-for-react-19';
+import {App, ConfigProvider} from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import './globals.css';
 
@@ -9,7 +9,9 @@ export default function RootLayout({ children }) {
     <html lang="zh-CN">
       <body>
         <ConfigProvider locale={zhCN}>
-          {children}
+          <App>
+            {children}
+          </App>
         </ConfigProvider>
       </body>
     </html>

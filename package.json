@@ -14,6 +14,7 @@
     "@alicloud/tea-typescript": "^1.8.0",
     "@alicloud/tea-util": "^1.4.11",
     "@ant-design/icons": "^5.4.0",
+    "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "@supabase/supabase-js": "^2.89.0",
     "antd": "^5.21.0",
     "axios": "^1.7.2",

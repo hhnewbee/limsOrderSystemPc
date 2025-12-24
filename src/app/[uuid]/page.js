@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useParams } from 'next/navigation';
-import { message, Spin, Modal } from 'antd';
+import { Spin, App } from 'antd';
 import axios from 'axios';
 import CustomerInfoModule from '@/components/CustomerInfoModule/CustomerInfoModule';
 import SampleInfoModule from '@/components/SampleInfoModule';
@@ -22,6 +22,7 @@ import {
 import OrderStatusSteps from "../../components/OrderStatusSteps";
 
 export default function OrderPage() {
+  const { message, modal } = App.useApp();
   const params = useParams();
   const uuid = params.uuid;
   
@@ -319,7 +320,7 @@ export default function OrderPage() {
       return;
     }
 
-    Modal.confirm({
+    modal.confirm({
       title: '确认提交',
       content: '提交后将无法修改，确定要提交吗？',
       okText: '确定',

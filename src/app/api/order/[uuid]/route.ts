@@ -76,8 +76,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         need_bioinformatics_analysis: !!parsedData.needBioinformaticsAnalysis,
         shipping_method: parsedData.shippingMethod,
         express_company_waybill: parsedData.expressCompanyWaybill,
-        shipping_time: parsedData.shippingTime ? new Date(parsedData.shippingTime).toISOString() : undefined,
-        project_number: parsedData.projectNumber,
+        shipping_time: parsedData.shippingTime
+            ? new Date(Number(parsedData.shippingTime)).toISOString()
+            : undefined,        project_number: parsedData.projectNumber,
         unit_price: parsedData.unitPrice,
         other_expenses: parsedData.otherExpenses,
         salesman_name: parsedData.salesmanName,
