@@ -136,12 +136,11 @@ const TableRow = memo(function TableRow({ index, style, data: itemData }: ListCh
                 {disabled ? (
                     <ReadOnlyText value={item.experimentDescription} />
                 ) : (
-                    <Input
+                    <InputWithError
                         value={item.experimentDescription}
                         onChange={(e) => onCellChange(index, 'experimentDescription', e.target.value)}
-                        onBlur={() => handleBlur('experimentDescription')} // 🟢 Added onBlur
-                        size="middle"
-                        placeholder="请输入备注"
+                        onBlur={() => handleBlur('experimentDescription')}
+                        disabled={disabled}
                     />
                 )}
             </div>
@@ -170,6 +169,36 @@ const TableRow = memo(function TableRow({ index, style, data: itemData }: ListCh
             </div>
         </div>
     );
-});
+}, areEqual);
+
+function areEqual(prevProps: ListChildComponentProps<ItemData>, nextProps: ListChildComponentProps<ItemData>) {
+    const { index, data: prevData } = prevProps;
+    const { data: nextData } = nextProps;
+
+    // 1. Static props check
+    if (prevProps.index !== nextProps.index) return false;
+    if (prevProps.style !== nextProps.style) return false;
+
+    // 2. Data Item Check (Reference equality)
+    if (prevData.items[index] !== nextData.items[index]) return false;
+
+    // 3. Error Check
+    if (prevData.errors?.[index] !== nextData.errors?.[index]) return false;
+
+    // 4. Selection Check
+    const prevSelected = prevData.selectedRows.has(index);
+    const nextSelected = nextData.selectedRows.has(index);
+    if (prevSelected !== nextSelected) return false;
+
+    // 5. Global flags
+    if (prevData.disabled !== nextData.disabled) return false;
+    if (prevData.needBioinformaticsAnalysis !== nextData.needBioinformaticsAnalysis) return false;
+
+    // 6. Callback Stability (Ideally these don't change, but if they do, we should re-render or trust them)
+    // Since we stabilized them in parent with Refs, we can ignore them or check equality
+    // if (prevData.onCellChange !== nextData.onCellChange) return false; 
+
+    return true;
+}
 
 export default TableRow;

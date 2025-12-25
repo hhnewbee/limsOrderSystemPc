@@ -1,10 +1,11 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { Button, Upload, Checkbox, Modal, App } from 'antd';
+import { Button, Upload, Checkbox, Modal, App, Alert, Tooltip } from 'antd';
 import {
     PlusOutlined, UploadOutlined, DownloadOutlined,
-    FileExcelOutlined, AppstoreAddOutlined, DeleteOutlined, LoadingOutlined
+    FileExcelOutlined, AppstoreAddOutlined, DeleteOutlined, LoadingOutlined,
+    UpOutlined, DownOutlined, WarningOutlined
 } from '@ant-design/icons';
 import { VariableSizeList as List } from 'react-window';
 import type { UploadFile } from 'antd/es/upload/interface';
@@ -43,10 +44,15 @@ export default function SampleListTable({ data, onChange, onBlur, disabled, need
     const listRef = useRef<List>(null);
     const columns = getColumns(needBioinformaticsAnalysis);
 
+    // [Performance] Cache data to stabilize callbacks
+    const dataRef = useRef(data);
+    dataRef.current = data;
+
     // [新增] 状态管理
     const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set()); // 存储选中行的索引
     const [isBatchAddOpen, setIsBatchAddOpen] = useState(false); // 控制弹窗
     const [importing, setImporting] = useState(false); // [新增] 导入加载状态
+    const [currentErrorPointer, setCurrentErrorPointer] = useState(0); // [新增] 当前定位的错误索引指针
 
     // 监听数据或错误变化，重置列表高度计算
     useEffect(() => {
@@ -82,6 +88,40 @@ export default function SampleListTable({ data, onChange, onBlur, disabled, need
     const isAllSelected = data.length > 0 && selectedRows.size === data.length;
     const isIndeterminate = selectedRows.size > 0 && selectedRows.size < data.length;
 
+    // --- 错误导航逻辑 ---
+    const errorIndices = useMemo(() => {
+        if (!errors) return [];
+        return Object.keys(errors)
+            .map(key => parseInt(key))
+            .filter(index => {
+                const rowErrs = errors[index];
+                return rowErrs && Object.values(rowErrs).some(e => !!e);
+            })
+            .sort((a, b) => a - b);
+    }, [errors]);
+
+    // 重置指针当错误列表变化时 (可选，或者保留以尝试维持上下文)
+    useEffect(() => {
+        setCurrentErrorPointer(0);
+    }, [errorIndices.length]);
+
+    const jumpToError = (direction: 'next' | 'prev') => {
+        if (errorIndices.length === 0) return;
+
+        let nextPointer = direction === 'next' ? currentErrorPointer + 1 : currentErrorPointer - 1;
+
+        // 循环
+        if (nextPointer >= errorIndices.length) nextPointer = 0;
+        if (nextPointer < 0) nextPointer = errorIndices.length - 1;
+
+        setCurrentErrorPointer(nextPointer);
+        const rowIndex = errorIndices[nextPointer];
+
+        // 滚动到该行 (居中显示)
+        listRef.current?.scrollToItem(rowIndex, 'center');
+        // 也可以高亮一下? (暂不处理复杂高亮)
+    };
+
     // --- 批量操作逻辑 ---
 
     // 批量添加回调
@@ -89,6 +129,10 @@ export default function SampleListTable({ data, onChange, onBlur, disabled, need
         onChange([...data, ...newRows]);
         message.success(`已批量添加 ${newRows.length} 条数据`);
         setIsBatchAddOpen(false);
+        // [新增] 立即触发校验
+        setTimeout(() => {
+            if (onBlur) onBlur('sampleList');
+        }, 0);
     };
 
     // 批量删除
@@ -119,32 +163,36 @@ export default function SampleListTable({ data, onChange, onBlur, disabled, need
     };
 
     const handleAddRow = useCallback(() => {
+        const currentData = dataRef.current;
         const newRow: SampleItem = {
             sampleName: '', analysisName: '', groupName: '',
             detectionOrStorage: '检测', sampleTubeCount: 1, experimentDescription: ''
         };
-        onChange([...data, newRow]);
-    }, [data, onChange]);
+        onChange([...currentData, newRow]);
+    }, [onChange]);
 
     const handleCopyRow = useCallback((index: number) => {
-        const newData = [...data];
-        newData.splice(index + 1, 0, { ...data[index] });
+        const currentData = dataRef.current;
+        const newData = [...currentData];
+        newData.splice(index + 1, 0, { ...currentData[index] });
         onChange(newData);
         message.success('行已复制');
-    }, [data, onChange, message]);
+    }, [onChange, message]);
 
     const handleDeleteRow = useCallback((index: number) => {
-        const newData = data.filter((_, i) => i !== index);
+        const currentData = dataRef.current;
+        const newData = currentData.filter((_, i) => i !== index);
         onChange(newData);
         // 如果删除了行，为防止索引错位，建议清空选中
         if (selectedRows.size > 0) setSelectedRows(new Set());
-    }, [data, onChange, selectedRows]);
+    }, [onChange, selectedRows]); // removed data dependency
 
     const handleCellChange = useCallback((index: number, field: string, value: any) => {
-        const newData = [...data];
+        const currentData = dataRef.current;
+        const newData = [...currentData];
         newData[index] = { ...newData[index], [field]: value };
         onChange(newData);
-    }, [data, onChange]);
+    }, [onChange]); // removed data dependency
 
     // 🟢 handleBlur wrapper
     const handleBlur = useCallback((field: string) => {
@@ -179,6 +227,10 @@ export default function SampleListTable({ data, onChange, onBlur, disabled, need
                 }));
                 onChange([...data, ...importedData]);
                 message.success(`成功导入 ${importedData.length} 条数据`);
+                // [新增] 立即触发校验
+                setTimeout(() => {
+                    if (onBlur) onBlur('sampleList');
+                }, 0);
             } catch (err) {
                 console.error(err);
                 message.error('导入失败，请检查文件格式是否正确');
@@ -279,6 +331,30 @@ export default function SampleListTable({ data, onChange, onBlur, disabled, need
                 </div>
                 <span className={styles.dataCount}>已录入 {data.length} 条样本</span>
             </div>
+
+            {/* [新增] 错误导航条 */}
+            {errorIndices.length > 0 && (
+                <Alert
+                    message={
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <span>
+                                <WarningOutlined style={{ marginRight: 8 }} />
+                                发现 <strong>{errorIndices.length}</strong> 行数据存在错误，建议修正后再提交。
+                            </span>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <Button size="small" icon={<UpOutlined />} onClick={() => jumpToError('prev')}>
+                                    上一处
+                                </Button>
+                                <Button size="small" icon={<DownOutlined />} onClick={() => jumpToError('next')}>
+                                    下一处 ({currentErrorPointer + 1}/{errorIndices.length})
+                                </Button>
+                            </div>
+                        </div>
+                    }
+                    type="error"
+                    style={{ marginBottom: 12 }}
+                />
+            )}
 
             <div className={styles.virtualTableContainer}>
                 <div className={styles.tableHeader}>
