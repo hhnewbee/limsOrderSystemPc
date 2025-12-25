@@ -53,11 +53,13 @@ export default function SampleAnalysisModule({ data, onChange, onBlur, disabled,
             <SampleListTable
                 data={(data.sampleList as SampleItem[]) || []}
                 onChange={handleSampleListChange}
-                onBlur={onBlur as any} // SampleListTable might expect generic onBlur, cast if needed or update SampleListTable types later
+                onBlur={onBlur as any}
                 disabled={disabled}
                 needBioinformaticsAnalysis={data.needBioinformaticsAnalysis}
                 errors={errors?.sampleList}
                 message={message}
+                pairwiseComparison={data.pairwiseComparison}
+                multiGroupComparison={data.multiGroupComparison}
             />
 
             {/* 两两比较 - 仅在需要生信分析时显示 */}

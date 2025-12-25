@@ -25,16 +25,21 @@ import {
     RowApiModule,
     ScrollApiModule,
     RenderApiModule,
-    HighlightChangesModule
+    HighlightChangesModule,
+    SelectEditorModule,
+    NumberEditorModule
 } from 'ag-grid-community';
 
 import "ag-grid-community/styles/ag-grid.css";
 import "ag-grid-community/styles/ag-theme-quartz.css";
 
 import BatchAddModal from './BatchAddModal';
-import { AgAntdSelectEditor, AgAntdNumberEditor } from './AgCellEditors';
 import styles from './SampleListTable.module.scss';
-import { DETECTION_OPTIONS } from './constants';
+import { SampleItem, SampleListTableProps } from './types';
+import { exportToExcel, importFromExcel } from './utils';
+
+// Re-export types for external use
+export type { SampleItem } from './types';
 
 // Register AG Grid Modules
 ModuleRegistry.registerModules([
@@ -48,32 +53,15 @@ ModuleRegistry.registerModules([
     RowApiModule,
     ScrollApiModule,
     RenderApiModule,
-    HighlightChangesModule
+    HighlightChangesModule,
+    SelectEditorModule,
+    NumberEditorModule
 ]);
 
-export interface SampleItem {
-    sampleName?: string;
-    analysisName?: string;
-    groupName?: string;
-    detectionOrStorage?: string;
-    sampleTubeCount?: number;
-    experimentDescription?: string;
-    [key: string]: any;
-}
-
-interface SampleListTableProps {
-    data: SampleItem[];
-    onChange: (newData: SampleItem[]) => void;
-    onBlur?: (field: string) => void;
-    disabled?: boolean;
-    needBioinformaticsAnalysis?: boolean | string;
-    errors?: any;
-    message?: any;
-}
-
-const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformaticsAnalysis, errors, message: parentMessage }: SampleListTableProps) => {
-    const { message: appMessage } = App.useApp();
-    const message = parentMessage || appMessage;
+const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformaticsAnalysis, errors, message: parentMessage, pairwiseComparison, multiGroupComparison }: SampleListTableProps) => {
+    const { message: appMessage, modal } = App.useApp();
+    // Use parentMessage if it has success/error methods, otherwise fall back to appMessage
+    const message = (parentMessage?.success && parentMessage?.error) ? parentMessage : appMessage;
 
     // Grid Ref
     const gridRef = useRef<AgGridReact>(null);
@@ -86,11 +74,13 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
         return Object.keys(errors)
             .map(key => parseInt(key))
             .filter(index => {
+                // Only include indices that exist in current data
+                if (index >= data.length) return false;
                 const rowErrs = errors[index];
                 return rowErrs && Object.values(rowErrs).some(e => !!e);
             })
             .sort((a, b) => a - b);
-    }, [errors]);
+    }, [errors, data.length]);
 
     const [currentErrorPointer, setCurrentErrorPointer] = useState(0);
 
@@ -110,22 +100,34 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
     };
 
     // --- Validation Styles ---
-    // Re-draw rows if errors change to update styles
+    // Refresh cell styles when errors change, but not if currently editing
+    const errorsRef = useRef(errors);
+    errorsRef.current = errors;
+
     useEffect(() => {
-        if (gridRef.current?.api) {
-            gridRef.current.api.redrawRows();
-        }
+        const api = gridRef.current?.api;
+        if (!api) return;
+
+        // Use setTimeout to avoid flushSync warning - push out of React render cycle
+        const timeoutId = setTimeout(() => {
+            // Don't refresh if a cell is being edited - this would steal focus
+            const editingCells = api.getEditingCells();
+            if (editingCells.length > 0) return;
+
+            api.refreshCells({ force: true });
+        }, 0);
+
+        return () => clearTimeout(timeoutId);
     }, [errors]);
 
-    const getCellClass = (params: any) => {
+    const getCellClass = useCallback((params: any) => {
         const rowIndex = params.node.rowIndex;
         const colId = params.colDef.field;
-        // Check exact field error
-        const hasError = errors?.[rowIndex]?.[colId];
+        const hasError = errorsRef.current?.[rowIndex]?.[colId];
         return hasError ? styles.cellError : undefined;
-    };
+    }, []);
 
-    // Restoring Row Actions
+    // Row Actions
     const handleCopyRow = useCallback((rowIndex: number) => {
         const rowToCopy = data[rowIndex];
         if (!rowToCopy) return;
@@ -134,10 +136,20 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
         newData.splice(rowIndex + 1, 0, newRow);
         onChange(newData);
         message.success('复制成功');
-    }, [data, onChange]);
+
+        // Scroll to and focus the new copied row
+        setTimeout(() => {
+            const api = gridRef.current?.api;
+            if (!api) return;
+            const newRowIndex = rowIndex + 1;
+            api.ensureIndexVisible(newRowIndex, 'middle');
+            api.setFocusedCell(newRowIndex, 'sampleName');
+            api.startEditingCell({ rowIndex: newRowIndex, colKey: 'sampleName' });
+        }, 100);
+    }, [data, onChange, message]);
 
     const handleDeleteRow = useCallback((rowIndex: number) => {
-        Modal.confirm({
+        modal.confirm({
             title: '确认删除',
             content: '确定要删除此行数据吗？',
             onOk: () => {
@@ -146,30 +158,33 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
                 message.success('删除成功');
             }
         });
-    }, [data, onChange]);
+    }, [data, onChange, modal, message]);
 
-    const ActionCellRenderer = (params: any) => {
-        const rowIndex = params.node.rowIndex;
-        return (
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                <Button
-                    type="text"
-                    icon={<CopyOutlined />}
-                    size="small"
-                    onClick={() => handleCopyRow(rowIndex)}
-                    title="复制行"
-                />
-                <Button
-                    type="text"
-                    danger
-                    icon={<DeleteOutlined />}
-                    size="small"
-                    onClick={() => handleDeleteRow(rowIndex)}
-                    title="删除行"
-                />
-            </div>
-        );
-    };
+    // Action Cell Renderer - memoized to prevent re-creation
+    const ActionCellRenderer = useMemo(() => {
+        return (params: any) => {
+            const rowIndex = params.node.rowIndex;
+            return (
+                <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                    <Button
+                        type="text"
+                        icon={<CopyOutlined />}
+                        size="small"
+                        onClick={() => handleCopyRow(rowIndex)}
+                        title="复制行"
+                    />
+                    <Button
+                        type="text"
+                        danger
+                        icon={<DeleteOutlined />}
+                        size="small"
+                        onClick={() => handleDeleteRow(rowIndex)}
+                        title="删除行"
+                    />
+                </div>
+            );
+        };
+    }, [handleCopyRow, handleDeleteRow]);
 
     // --- Column Definitions ---
     const columnDefs = useMemo<ColDef[]>(() => {
@@ -235,9 +250,9 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
                 field: 'detectionOrStorage',
                 headerName: '检测或暂存',
                 width: 130,
-                cellEditor: AgAntdSelectEditor,
+                cellEditor: 'agSelectCellEditor',
                 cellEditorParams: {
-                    options: DETECTION_OPTIONS
+                    values: ['检测', '暂存']
                 },
                 ...commonColProps
             },
@@ -245,7 +260,10 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
                 field: 'sampleTubeCount',
                 headerName: '样品管数',
                 width: 100,
-                cellEditor: AgAntdNumberEditor,
+                cellEditor: 'agNumberCellEditor',
+                cellEditorParams: {
+                    min: 1
+                },
                 ...commonColProps
             },
             {
@@ -271,49 +289,53 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
         }
 
         return cols;
-    }, [disabled, needBioinformaticsAnalysis, errors, handleCopyRow, handleDeleteRow]);
-    // Dependencies: errors included to rebuild colDefs? 
-    // Actually cellClass function is stable if defined outside, but inside relies on 'errors' closure?
-    // 'getCellClass' relies on 'errors'. So if 'errors' update, we need new getCellClass or use ref.
-    // 'errors' is in scope. If passed to cellClass, AG Grid calls it.
-    // Grid Api redrawRows handles re-calling it.
+    }, [disabled, needBioinformaticsAnalysis, getCellClass, handleCopyRow, handleDeleteRow]);
 
     const defaultColDef = useMemo<ColDef>(() => ({
         sortable: false,
         filter: false,
         resizable: true,
+        cellEditorParams: {
+            selectAll: false  // Don't select all text when entering edit mode
+        }
     }), []);
 
     // --- Data Handling ---
     const onCellValueChanged = useCallback((event: CellValueChangedEvent) => {
-        // AG Grid updates 'data' object in place (mutable).
-        // But React needs immutable update to trigger effects?
-        // Actually, if we pass deep copy to grid, grid mutates IT.
-        // We should gather all rows data from Grid and call onChange?
-        // OR: Update 'data' prop (which is our state) by modifying the changed row index.
-
         const rowIndex = event.node.rowIndex;
         if (rowIndex === null || rowIndex === undefined) return;
 
         const updatedRow = event.data;
-        const newData = [...data]; // Shallow copy array
-        newData[rowIndex] = { ...updatedRow }; // Copy object to ensure ref change for row
+        const newData = [...data];
+        newData[rowIndex] = { ...updatedRow };
         onChange(newData);
-
-        // Trigger validation ?
-        // onBlur can be mapped differently. Maybe debounce auto-save?
-        // "Local State" logic: Grid is now local state. 
-        // We commit to Global State on Change.
     }, [data, onChange]);
 
-    // Add Row
-    const handleAddRow = () => {
+    // Add Row - with auto-scroll and auto-focus
+    const handleAddRow = useCallback(() => {
         const newRow: SampleItem = {
             sampleName: '', analysisName: '', groupName: '',
             detectionOrStorage: '检测', sampleTubeCount: 1, experimentDescription: ''
         };
-        onChange([...data, newRow]);
-    };
+        const newData = [...data, newRow];
+        onChange(newData);
+
+        // After data updates, scroll to the new row and start editing
+        setTimeout(() => {
+            const api = gridRef.current?.api;
+            if (!api) return;
+
+            const newRowIndex = newData.length - 1;
+            // Scroll to the new row
+            api.ensureIndexVisible(newRowIndex, 'bottom');
+            // Start editing the first editable cell (sampleName)
+            api.setFocusedCell(newRowIndex, 'sampleName');
+            api.startEditingCell({
+                rowIndex: newRowIndex,
+                colKey: 'sampleName'
+            });
+        }, 100);
+    }, [data, onChange]);
 
     // Selection & Delete
     const handleDeleteSelected = () => {
@@ -321,7 +343,7 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
         if (!selectedNodes || selectedNodes.length === 0) return;
 
         const selectedIndices = new Set(selectedNodes.map(n => n.rowIndex));
-        Modal.confirm({
+        modal.confirm({
             title: '确认删除',
             content: `确定要删除选中的 ${selectedIndices.size} 条数据吗？`,
             onOk: () => {
@@ -332,41 +354,40 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
         });
     };
 
-    // Import/Export logic (simplified reuse)
-    // ... [Reuse import logic from previous impl] ... 
-    // Copied for simplicity:
+    // Import handler - using utility function
     const handleImport = async (file: File) => {
         if (file.size / 1024 / 1024 > 5) {
             message.error('文件过大');
             return false;
         }
         setImporting(true);
-        const reader = new FileReader();
-        reader.onload = async (e) => {
-            try {
-                const XLSX = await import('xlsx');
-                const workbook = XLSX.read(e.target?.result, { type: 'binary' });
-                const jsonData = XLSX.utils.sheet_to_json<any>(workbook.Sheets[workbook.SheetNames[0]]);
-                const importedData: SampleItem[] = jsonData.map(row => ({
-                    sampleName: row['样本名称'] || '',
-                    analysisName: row['分析名称'] || '',
-                    groupName: row['分组名称'] || '',
-                    detectionOrStorage: row['检测或暂存'] || '检测',
-                    sampleTubeCount: parseInt(row['样品管数']) || 1,
-                    experimentDescription: row['实验设计描述及样本备注'] || ''
-                }));
-                onChange([...data, ...importedData]);
-                message.success(`成功导入 ${importedData.length} 条数据`);
-                setTimeout(() => { if (onBlur) onBlur('sampleList'); }, 0);
-            } catch (err) {
-                console.error(err);
-                message.error('导入失败');
-            } finally {
-                setImporting(false);
-            }
-        };
-        reader.readAsBinaryString(file);
+        try {
+            const importedData = await importFromExcel(file);
+            onChange([...data, ...importedData]);
+            message.success(`成功导入 ${importedData.length} 条数据`);
+            setTimeout(() => { if (onBlur) onBlur('sampleList'); }, 0);
+        } catch (err) {
+            console.error(err);
+            message.error('导入失败');
+        } finally {
+            setImporting(false);
+        }
         return false;
+    };
+
+    // Export handler - using utility function
+    const handleExport = async () => {
+        if (data.length === 0) {
+            message.warning('没有数据可导出');
+            return;
+        }
+        try {
+            await exportToExcel(data, pairwiseComparison, multiGroupComparison);
+            message.success('导出成功');
+        } catch (err) {
+            console.error(err);
+            message.error('导出失败');
+        }
     };
 
     // Batch Add Callback
@@ -383,6 +404,17 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
         // AG Grid doesn't have a simple 'onBlur' for whole grid.
         // We can use onCellEditingStopped -> trigger validation for that field?
     };
+
+    // Move cursor to end when editing starts (prevent auto-select all)
+    const onCellEditingStarted = useCallback((event: any) => {
+        setTimeout(() => {
+            const input = document.querySelector('.ag-cell-edit-wrapper input') as HTMLInputElement;
+            if (input) {
+                const len = input.value.length;
+                input.setSelectionRange(len, len);
+            }
+        }, 10);
+    }, []);
 
     const onCellEditingStopped = useCallback((event: any) => {
         // Optionally validate single field or whole list
@@ -436,6 +468,12 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
                             </Button>
                         </>
                     )}
+                    {/* Export button - always visible */}
+                    {data.length > 0 && (
+                        <Button icon={<DownloadOutlined />} onClick={handleExport}>
+                            导出数据
+                        </Button>
+                    )}
                 </div>
                 <span className={styles.dataCount}>已录入 {data.length} 条样本</span>
             </div>
@@ -451,12 +489,16 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
                     rowSelection="multiple"
                     suppressRowClickSelection={true}
                     onCellValueChanged={onCellValueChanged}
+                    onCellEditingStarted={onCellEditingStarted}
                     onCellEditingStopped={onCellEditingStopped}
-                    stopEditingWhenCellsLoseFocus={true} // Excel like behavior
+                    stopEditingWhenCellsLoseFocus={true}
                     enterNavigatesVerticallyAfterEdit={true}
                     enterNavigatesVertically={true}
+                    singleClickEdit={true}
+                    suppressScrollOnNewData={true}
                 />
             </div>
+
 
             <BatchAddModal
                 open={isBatchAddOpen}
@@ -464,7 +506,7 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
                 onAdd={handleBatchAdd}
                 needBioinformaticsAnalysis={needBioinformaticsAnalysis}
             />
-        </div>
+        </div >
     );
 };
 

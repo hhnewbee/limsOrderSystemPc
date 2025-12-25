@@ -23,18 +23,19 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
 
     // --- 自动清理无效组名 & 重新生成比较方案 ---
     useEffect(() => {
-        // if (disabled) return;
-
         let hasChanges = false;
 
         const newData = data.map(item => {
+            const groups = item.comparisonGroups || [];
             // 1. 过滤无效组名
-            const validGroups = item.comparisonGroups.filter((g: string) => groupNames.includes(g));
-            // 2. 检查组名是否有变化
-            if (validGroups.length !== item.comparisonGroups.length) {
+            const validGroups = groups.filter((g: string) => groupNames.includes(g));
+            // 2. 生成正确的比较方案名称
+            const expectedName = validGroups.length > 0 ? validGroups.join(' vs ') : '';
+
+            // 3. 检查是否需要更新（组名变化或名称不匹配）
+            if (validGroups.length !== groups.length || item.comparisonName !== expectedName) {
                 hasChanges = true;
-                const newName = validGroups.length > 0 ? validGroups.join(' vs ') : '';
-                return { ...item, comparisonGroups: validGroups, comparisonName: newName };
+                return { ...item, comparisonGroups: validGroups, comparisonName: expectedName };
             }
             return item;
         });
@@ -42,7 +43,7 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
         if (hasChanges) {
             onChange(newData);
         }
-    }, [groupNames, disabled, data, onChange]);
+    }, [groupNames, data, onChange]);
 
     const handleAddRow = useCallback(() => {
         onChange([...data, { comparisonName: '', comparisonGroups: [] }]);

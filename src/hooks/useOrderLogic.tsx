@@ -165,7 +165,37 @@ export function useOrderLogic(
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
-            message.error('请检查表单填写是否正确');
+
+            // 字段名称映射
+            const fieldNameMap: Record<string, string> = {
+                speciesName: '物种名称',
+                speciesLatinName: '物种拉丁名',
+                sampleType: '样本类型',
+                sampleTypeDetail: '样本类型详述',
+                remainingSampleHandling: '剩余样品处理方式',
+                detectionQuantity: '检测数量',
+                shippingMethod: '运送方式',
+                expressCompanyWaybill: '快递公司及运单号',
+                shippingTime: '送样时间',
+                sampleList: '样本清单'
+            };
+
+            // 获取错误字段的中文名称
+            const errorFields = Object.keys(newErrors)
+                .filter(key => key !== 'sampleList')
+                .map(key => fieldNameMap[key] || key);
+
+            // 如果样本清单有错误，添加提示
+            if (newErrors.sampleList) {
+                const errorRowCount = Object.keys(newErrors.sampleList).length;
+                errorFields.push(`样本清单(${errorRowCount}行有错误)`);
+            }
+
+            const errorMessage = errorFields.length > 0
+                ? `以下字段有问题：${errorFields.join('、')}`
+                : '请检查表单填写是否正确';
+
+            message.error(errorMessage);
             return;
         }
 
