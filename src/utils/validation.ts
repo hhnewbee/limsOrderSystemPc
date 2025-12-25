@@ -75,7 +75,11 @@ export const validateOrderForm = (data: OrderFormData): ValidationErrors => {
             }
 
             // 2. 生信分析相关
-            if (data.needBioinformaticsAnalysis) {
+            // 🟢 Align with UI logic: handle string 'true' or boolean true
+            const isBioEnabled = data.needBioinformaticsAnalysis === true || String(data.needBioinformaticsAnalysis) === 'true';
+
+            if (isBioEnabled) {
+                // 分析名称
                 // 分析名称
                 if (!sample.analysisName) {
                     rowErrors.analysisName = '分析名称不能为空';

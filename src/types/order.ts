@@ -39,6 +39,8 @@ export interface DBOrder {
     created_at?: string;
     updated_at?: string;
     submitted_at?: string;
+    user_id?: string; // 🟢 Auth User ID
+    sales_dingtalk_id?: string; // 🟢 Sales Dingtalk ID
 }
 
 export interface DBSample {
@@ -118,9 +120,11 @@ export interface OrderFormData {
     pairwiseComparison?: Array<{
         treatmentGroup?: string;
         controlGroup?: string;
+        comparisonScheme?: string; // Auto-generated
     }>;
     multiGroupComparison?: Array<{
-        comparisonGroups?: string | string[];
+        comparisonGroups?: string[];
+        comparisonName?: string; // Auto-generated
     }>;
 }
 

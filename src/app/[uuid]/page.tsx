@@ -1,7 +1,7 @@
 // src/app/[uuid]/page.tsx
 'use client';
 
-import React from 'react';
+import React, { Suspense } from 'react';
 import { useParams } from 'next/navigation';
 import { Spin, App } from 'antd';
 import styles from './page.module.scss';
@@ -20,14 +20,19 @@ import OrderStatusSteps from "@/components/OrderStatusSteps";
 import { useOrderLogic } from '@/hooks/useOrderLogic';
 import { ORDER_STATUS } from '@/constants/orderStatus';
 
-export default function OrderPage() {
+import AuthGuard from '@/components/AuthGuard';
+import { useSearchParams } from 'next/navigation';
+
+function OrderContent() {
     const { message, modal } = App.useApp();
     const params = useParams();
+    const searchParams = useSearchParams();
+    const salesToken = searchParams.get('s_token');
 
     // 兼容处理：确保 uuid 是 string 类型
     const uuid = Array.isArray(params.uuid) ? params.uuid[0] : params.uuid;
 
-    // 使用 Hook
+    // 使用 Hook，传入 salesToken
     const {
         loading,
         saving,
@@ -38,10 +43,10 @@ export default function OrderPage() {
         isEditable,
         pageStatus,
         updateFormData,
-        handleBlur, // 🟢 获取 handleBlur
+        handleBlur,
         handleSave,
         handleSubmit
-    } = useOrderLogic(uuid!, message, modal);
+    } = useOrderLogic(uuid!, message, modal, salesToken); // 🟢 Pass Token
 
     if (loading) {
         return (
@@ -66,32 +71,29 @@ export default function OrderPage() {
             <Header status={pageStatus} />
             <div className="page-container">
                 <div className={styles.layoutGrid}>
-
                     <main className={styles.mainContent}>
                         <CustomerInfoModule data={orderData} />
-
                         <SampleInfoModule
                             data={orderData}
                             onChange={updateFormData}
-                            onBlur={handleBlur} // 🟢 传递 onBlur
+                            onBlur={handleBlur}
                             disabled={!isEditable}
                             errors={errors}
                         />
-
                         <ShippingModule
                             data={orderData}
                             onChange={updateFormData}
-                            onBlur={handleBlur} // 🟢 传递 onBlur
+                            onBlur={handleBlur}
                             disabled={!isEditable}
                             errors={errors}
                         />
-
                         <SampleAnalysisModule
                             data={orderData}
                             onChange={updateFormData}
-                            onBlur={handleBlur} // 🟢 传递 onBlur
+                            onBlur={handleBlur}
                             disabled={!isEditable}
                             errors={errors}
+                            message={message} // 🟢 Pass message
                         />
                     </main>
 
@@ -103,9 +105,7 @@ export default function OrderPage() {
                                     {orderData.projectNumber || '系统生成中...'}
                                 </div>
                             </div>
-
                             <ProjectInfoModule data={orderData} />
-
                             <div style={{ marginBottom: '16px' }}>
                                 <OrderStatusSteps
                                     currentStatus={
@@ -120,7 +120,6 @@ export default function OrderPage() {
                         </div>
                     </aside>
                 </div>
-
                 {isEditable && (
                     <SubmitArea
                         onSave={handleSave}
@@ -132,5 +131,15 @@ export default function OrderPage() {
                 )}
             </div>
         </>
+    );
+}
+
+export default function OrderPage() {
+    return (
+        <Suspense fallback={<div className="page-container" style={{ textAlign: 'center', paddingTop: 100 }}><Spin size="large" /></div>}>
+            <AuthGuard>
+                <OrderContent />
+            </AuthGuard>
+        </Suspense>
     );
 }

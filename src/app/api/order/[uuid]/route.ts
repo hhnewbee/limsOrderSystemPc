@@ -1,10 +1,10 @@
-// src/app/api/order/[uuid]/route.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { searchFormData, parseYidaFormData } from '@/lib/dingtalk';
 import type { DBOrder, DBSample, DBPairwise, DBMultiGroup } from '@/types/order';
-// 🟢 引入转换器
 import { dbToApp, appToDb } from '@/lib/converters';
+import { decrypt } from '@/lib/crypto';
+import { supabaseAdmin } from '@/lib/supabase-admin';
 
 interface RouteParams {
   params: Promise<{ uuid: string }>;
@@ -12,31 +12,81 @@ interface RouteParams {
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { uuid } = await params;
-  console.log(`[API] 获取订单: ${uuid}`);
+
+  // 1. Security Checks
+  const salesToken = request.nextUrl.searchParams.get('s_token');
+  const authHeader = request.headers.get('Authorization');
+  let operatorId: string | null = null;
+  let userId: string | null = null;
+
+  // Check Sales Token
+  if (salesToken) {
+    try {
+      const decrypted = decrypt(salesToken);
+      if (decrypted) {
+        operatorId = decrypted;
+        console.log(`[API] Sales Access Granted via Token. Operator: ${operatorId}`);
+      }
+    } catch (e) {
+      console.warn('[API] Invalid Sales Token');
+    }
+  }
+
+  // Check User Auth
+  if (authHeader) {
+    const token = authHeader.replace('Bearer ', '');
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    if (user && !error) {
+      userId = user.id;
+      console.log(`[API] Customer Access. User: ${userId}`);
+    }
+  }
+
+  // Permission Gate
+  if (!operatorId && !userId) {
+    return NextResponse.json({ error: 'Unauthorized: Please login first' }, { status: 401 });
+  }
 
   try {
-    // 1. 从 Supabase 获取数据 (SnakeCase)
+    // 2. Fetch from Supabase
     let { data: rawOrder } = await supabase
-        .from('orders')
-        .select(`
+      .from('orders')
+      .select(`
         *,
         sample_list(*),
         pairwise_comparison(*),
         multi_group_comparison(*)
       `)
-        .eq('uuid', uuid)
-        .maybeSingle();
+      .eq('uuid', uuid)
+      .maybeSingle();
 
-    // 类型断言
     const order = rawOrder as (DBOrder & {
       sample_list: DBSample[];
       pairwise_comparison: DBPairwise[];
       multi_group_comparison: DBMultiGroup[];
     }) | null;
 
-    // 2. 检查有效性
+    // --- Order Security Check ---
+    if (order) {
+      if (operatorId) {
+        // Sales allow
+      } else if (userId) {
+        if (order.user_id) {
+          if (order.user_id !== userId) {
+            return NextResponse.json({ error: 'Forbidden: Order belongs to another user' }, { status: 403 });
+          }
+        } else {
+          // Claim
+          console.log(`[API] Claiming order ${uuid} for user ${userId}`);
+          await supabase.from('orders').update({ user_id: userId }).eq('uuid', uuid);
+          order.user_id = userId;
+        }
+      }
+    }
+
     const hasValidData = order && order.customer_name;
 
+    // 3. Sync from DingTalk if not found
     if (!order || !hasValidData) {
       console.log('[API] 本地无数据，尝试从钉钉获取...');
 
@@ -44,34 +94,58 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         await supabase.from('orders').delete().eq('uuid', uuid);
       }
 
-      // 钉钉回退逻辑
       const yidaData = await searchFormData(uuid);
-      // parseYidaFormData 内部现在也应该使用 converter (见下文 dingtalk.ts 重构)
       const parsedData = parseYidaFormData(yidaData);
 
       if (!parsedData) {
         return NextResponse.json({ error: '订单不存在' }, { status: 404 });
       }
 
-      // 🟢 使用转换器构建 DB 数据 (App -> DB)
-      // 注意：这里我们需要手动补充一些初始状态
-      const insertPayload = appToDb({
+      const dbBase = appToDb({
         ...parsedData,
-        uuid: uuid, // 确保 UUID 存在
+        uuid: uuid,
         status: 'draft',
       });
 
+      // 🟢 Auto-Bind Logic
+      let autoBindUserId = userId || null;
+
+      if (!autoBindUserId && parsedData.customerPhone) {
+        try {
+          const phone = parsedData.customerPhone.trim();
+          const virtualEmail = `${phone}@client.lims`;
+
+          const { data: foundUser } = await supabaseAdmin
+            .schema('auth')
+            .from('users')
+            .select('id')
+            .eq('email', virtualEmail)
+            .maybeSingle();
+
+          if (foundUser) {
+            autoBindUserId = foundUser.id;
+            console.log(`[API] Auto-bound order ${uuid} to existing user: ${phone} (${foundUser.id})`);
+          }
+        } catch (e) {
+          console.warn('[API] Auto-bind check failed:', e);
+        }
+      }
+
+      const insertPayload = {
+        ...dbBase,
+        user_id: autoBindUserId
+      };
+
       const { data: newOrder, error: insertError } = await supabase
-          .from('orders')
-          .insert(insertPayload)
-          .select()
-          .single();
+        .from('orders')
+        .insert(insertPayload)
+        .select()
+        .single();
 
       if (insertError) {
         throw new Error(`初始化订单失败: ${insertError.message}`);
       }
 
-      // 重新构造 rawOrder 结构
       rawOrder = {
         ...newOrder,
         sample_list: [],
@@ -80,17 +154,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       };
     }
 
-    // 再次断言
     const finalOrder = rawOrder as (DBOrder & {
       sample_list: DBSample[];
       pairwise_comparison: DBPairwise[];
       multi_group_comparison: DBMultiGroup[];
     });
 
-    // 🟢 3. 使用转换器返回前端 (DB -> App)
-    // 所有的字段映射逻辑都在 converters.ts 中，这里非常干净
     const formattedData = dbToApp(finalOrder);
-
     return NextResponse.json(formattedData);
 
   } catch (error: any) {

@@ -1,12 +1,27 @@
 'use client';
 
-import { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Button, Input, Select, message } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import styles from './PairwiseComparisonTable.module.scss';
+import { DefaultOptionType } from 'antd/es/select';
 
-export default function PairwiseComparisonTable({ data = [], onChange, disabled, groupNames = [] }) {
-    const [selectedRowIndex, setSelectedRowIndex] = useState(null);
+interface PairwiseComparisonItem {
+    controlGroup?: string;
+    treatmentGroup?: string;
+    comparisonScheme?: string;
+    [key: string]: any;
+}
+
+interface PairwiseComparisonTableProps {
+    data?: PairwiseComparisonItem[];
+    onChange: (newData: PairwiseComparisonItem[]) => void;
+    disabled?: boolean;
+    groupNames?: string[];
+}
+
+export default function PairwiseComparisonTable({ data = [], onChange, disabled, groupNames = [] }: PairwiseComparisonTableProps) {
+    const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
 
     // --- 自动清理无效组名 ---
     useEffect(() => {
@@ -46,7 +61,7 @@ export default function PairwiseComparisonTable({ data = [], onChange, disabled,
         setSelectedRowIndex(null);
     }, [data, onChange]);
 
-    const handleDeleteRow = useCallback((index) => {
+    const handleDeleteRow = useCallback((index: number) => {
         const newData = data.filter((_, i) => i !== index);
         onChange(newData);
         setSelectedRowIndex(null);
@@ -55,10 +70,10 @@ export default function PairwiseComparisonTable({ data = [], onChange, disabled,
 
     // 全局按键监听
     useEffect(() => {
-        const handleGlobalKeyDown = (e) => {
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
             if (selectedRowIndex === null || disabled) return;
             if (e.key === 'Delete' || e.key === 'Backspace') {
-                const activeTag = document.activeElement.tagName;
+                const activeTag = (document.activeElement as HTMLElement).tagName;
                 if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
                     e.preventDefault();
                     handleDeleteRow(selectedRowIndex);
@@ -69,14 +84,14 @@ export default function PairwiseComparisonTable({ data = [], onChange, disabled,
         return () => window.removeEventListener('keydown', handleGlobalKeyDown);
     }, [selectedRowIndex, handleDeleteRow, disabled]);
 
-    const handleInputKeyDown = (e, index) => {
+    const handleInputKeyDown = (e: React.KeyboardEvent, index: number) => {
         if (e.altKey && (e.key === 'Delete' || e.key === 'Backspace')) {
             e.preventDefault();
             handleDeleteRow(index);
         }
     };
 
-    const handleCellChange = useCallback((index, field, value) => {
+    const handleCellChange = useCallback((index: number, field: string, value: any) => {
         const newData = [...data];
         const safeValue = value || '';
         const currentRow = { ...newData[index], [field]: safeValue };
@@ -97,7 +112,7 @@ export default function PairwiseComparisonTable({ data = [], onChange, disabled,
 
     const groupOptions = groupNames.map(name => ({ label: name, value: name }));
 
-    const handleRowClick = (index) => {
+    const handleRowClick = (index: number) => {
         if (!disabled) {
             setSelectedRowIndex(index === selectedRowIndex ? null : index);
         }
@@ -123,19 +138,19 @@ export default function PairwiseComparisonTable({ data = [], onChange, disabled,
 
             <div className={styles.tableHeader}>
                 <div className={styles.headerCell} style={{ flex: '0 0 60px' }}>序号</div>
-                <div className={styles.headerCell} style={{ flex: 1 }}>对照组 (Control) <span style={{color:'#ff4d4f', marginLeft:4}}>*</span></div>
-                <div className={styles.headerCell} style={{ flex: 1 }}>实验组 (Case) <span style={{color:'#ff4d4f', marginLeft:4}}>*</span></div>
+                <div className={styles.headerCell} style={{ flex: 1 }}>对照组 (Control) <span style={{ color: '#ff4d4f', marginLeft: 4 }}>*</span></div>
+                <div className={styles.headerCell} style={{ flex: 1 }}>实验组 (Case) <span style={{ color: '#ff4d4f', marginLeft: 4 }}>*</span></div>
                 <div className={styles.headerCell} style={{ flex: 1.2 }}>比较方案名称 (自动生成)</div>
                 <div className={styles.headerCell} style={{ flex: '0 0 80px' }}>操作</div>
             </div>
 
             {data.length > 0 ? (
                 data.map((item, index) => {
-                    const controlOptions = groupNames.map(name => ({
+                    const controlOptions: DefaultOptionType[] = groupNames.map(name => ({
                         label: name, value: name, disabled: name === item.treatmentGroup
                     }));
 
-                    const experimentalOptions = groupNames.map(name => ({
+                    const experimentalOptions: DefaultOptionType[] = groupNames.map(name => ({
                         label: name, value: name, disabled: name === item.controlGroup
                     }));
 
@@ -167,7 +182,7 @@ export default function PairwiseComparisonTable({ data = [], onChange, disabled,
                                         style={{ width: '100%' }}
                                         showSearch
                                         allowClear
-                                        filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+                                        filterOption={(input, option) => ((option?.label ?? '') as string).toLowerCase().includes(input.toLowerCase())}
                                     />
                                 ) : (
                                     <Input
@@ -193,7 +208,7 @@ export default function PairwiseComparisonTable({ data = [], onChange, disabled,
                                         style={{ width: '100%' }}
                                         showSearch
                                         allowClear
-                                        filterOption={(input, option) => (option?.label ?? '').toLowerCase().includes(input.toLowerCase())}
+                                        filterOption={(input, option) => ((option?.label ?? '') as string).toLowerCase().includes(input.toLowerCase())}
                                     />
                                 ) : (
                                     <Input

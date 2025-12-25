@@ -11,6 +11,7 @@ import {
 import type { OrderFormData } from '@/types/order';
 import { ORDER_STATUS, EDITABLE_STATUSES } from '@/constants/orderStatus';
 import { validateOrderForm, ValidationErrors } from '@/utils/validation';
+import { supabase } from '@/lib/supabase';
 
 interface UseOrderLogicResult {
     loading: boolean;
@@ -26,7 +27,7 @@ interface UseOrderLogicResult {
         icon: React.ReactNode;
     } | null;
     updateFormData: (field: keyof OrderFormData, value: any) => void;
-    handleBlur: (field: keyof OrderFormData) => void; // 🟢 暴露 handleBlur
+    handleBlur: (field: keyof OrderFormData) => void;
     handleSave: () => Promise<void>;
     handleSubmit: () => Promise<void>;
 }
@@ -34,7 +35,8 @@ interface UseOrderLogicResult {
 export function useOrderLogic(
     uuid: string,
     message: any,
-    modal: any
+    modal: any,
+    salesToken: string | null = null // 🟢 Accept Sales Token
 ): UseOrderLogicResult {
 
     const [loading, setLoading] = useState(true);
@@ -46,6 +48,14 @@ export function useOrderLogic(
 
     const initialDataRef = useRef<string | null>(null);
     const isLoadingRef = useRef(false);
+    const latestOrderDataRef = useRef<OrderFormData | null>(null); // 🟢 Track latest data
+
+    // ...
+
+    // Sync ref when orderData changes (e.g. initial load)
+    useEffect(() => {
+        latestOrderDataRef.current = orderData;
+    }, [orderData]);
 
     // --- 1. 加载数据 ---
     const loadOrderData = useCallback(async () => {
@@ -54,7 +64,18 @@ export function useOrderLogic(
 
         try {
             setLoading(true);
-            const response = await axios.get<OrderFormData>(`/api/order/${uuid}`);
+            // 🟢 Get Token
+            const { data: { session } } = await supabase.auth.getSession();
+            const token = session?.access_token;
+
+            const response = await axios.get<OrderFormData>(`/api/order/${uuid}`, {
+                headers: {
+                    Authorization: token ? `Bearer ${token}` : undefined
+                },
+                params: {
+                    s_token: salesToken // 🟢 Also pass sales token in query for GET checks
+                }
+            });
             setOrderData(response.data);
             initialDataRef.current = JSON.stringify(response.data);
         } catch (error) {
@@ -64,7 +85,7 @@ export function useOrderLogic(
             setLoading(false);
             isLoadingRef.current = false;
         }
-    }, [uuid, message]);
+    }, [uuid, message, salesToken]);
 
     useEffect(() => {
         if (uuid) {
@@ -72,41 +93,20 @@ export function useOrderLogic(
         }
     }, [uuid, loadOrderData]);
 
-    // --- 2. 脏检查 ---
     // --- 2. 脏检查 (优化：增加 500ms 防抖，避免打字卡顿) ---
-    useEffect(() => {
-        if (orderData && initialDataRef.current) {
-            const timer = setTimeout(() => {
-                const currentData = JSON.stringify(orderData);
-                setHasUnsavedChanges(currentData !== initialDataRef.current);
-            }, 500);
-
-            return () => clearTimeout(timer);
-        }
-    }, [orderData]);
-
-    // --- 3. 页面离开拦截 ---
-    useEffect(() => {
-        const handleBeforeUnload = (e: BeforeUnloadEvent) => {
-            if (hasUnsavedChanges && orderData?.status !== ORDER_STATUS.SUBMITTED) {
-                e.preventDefault();
-                e.returnValue = '您有未保存的更改，确定要离开吗？';
-                return e.returnValue;
-            }
-        };
-        window.addEventListener('beforeunload', handleBeforeUnload);
-        return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-    }, [hasUnsavedChanges, orderData?.status]);
 
     // --- 4. 数据更新 (onChange) ---
     const updateFormData = useCallback((field: keyof OrderFormData, value: any) => {
         setOrderData(prev => {
             if (!prev) return null;
-            return { ...prev, [field]: value };
+            const newData = { ...prev, [field]: value };
+            latestOrderDataRef.current = newData; // 🟢 Update Ref immediately
+            return newData;
         });
 
         // 🟢 优化：用户一旦开始修改，立即清除该字段的错误提示 (提升体验)
-        if (errors[field]) {
+        // 但对于 sampleList，因为是复杂对象，修改某行不应清除整个列表的错误
+        if (field !== 'sampleList' && errors[field]) {
             setErrors(prev => {
                 const newErrors = { ...prev };
                 delete newErrors[field];
@@ -117,10 +117,12 @@ export function useOrderLogic(
 
     // --- 5. 失焦校验 (onBlur) ---
     const handleBlur = useCallback((field: keyof OrderFormData) => {
-        if (!orderData) return;
+        // Use Ref to get the absolutely latest data, avoiding closure staleness
+        const dataToValidate = latestOrderDataRef.current || orderData;
+        if (!dataToValidate) return;
 
         // 运行全量校验（纯函数，很快）
-        const currentErrors = validateOrderForm(orderData);
+        const currentErrors = validateOrderForm(dataToValidate);
         const fieldError = currentErrors[field];
 
         setErrors(prev => {
@@ -136,7 +138,7 @@ export function useOrderLogic(
             }
             return prev;
         });
-    }, [orderData]);
+    }, [orderData]); // Keep orderData dep for safety, though ref handles the value
 
     // --- 6. 保存 (暂存) ---
     const handleSave = async () => {
@@ -175,7 +177,11 @@ export function useOrderLogic(
             onOk: async () => {
                 try {
                     setSubmitting(true);
-                    const response = await axios.post(`/api/order/${uuid}/submit`, orderData);
+                    // 🟢 Pass salesToken to backend
+                    const response = await axios.post(`/api/order/${uuid}/submit`, {
+                        ...orderData,
+                        _salesToken: salesToken
+                    });
                     message.success('提交成功');
 
                     setOrderData(prev => {

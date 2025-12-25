@@ -196,7 +196,10 @@ export function yidaToApp(
         samplePreprocessing: formData.SamplePreprocessingMethod,
         remainingSampleHandling: formData.RemainingSampleProcessingMethod,
         // 宜搭可能返回 '是'/'否' 或 boolean
-        needBioinformaticsAnalysis: formData.IsBioinformaticsAnalysis === '是' || formData.IsBioinformaticsAnalysis === true,
+        // 🟢 Fix: 如果字段未定义，则返回 undefined，避免覆盖原有值
+        needBioinformaticsAnalysis: formData.IsBioinformaticsAnalysis === undefined
+            ? undefined
+            : (formData.IsBioinformaticsAnalysis === '是' || formData.IsBioinformaticsAnalysis === true),
 
         shippingMethod: formData.ModeOfDelivery,
         expressCompanyWaybill: formData.ExpressCompanyAndWaybillNumber,

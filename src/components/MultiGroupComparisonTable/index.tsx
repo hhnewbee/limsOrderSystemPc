@@ -1,12 +1,25 @@
 'use client';
 
-import { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect } from 'react';
 import { Button, Input, Select, message } from 'antd';
 import { PlusOutlined, DeleteOutlined } from '@ant-design/icons';
 import styles from './MultiGroupComparisonTable.module.scss';
 
-export default function MultiGroupComparisonTable({ data = [], onChange, disabled, groupNames = [] }) {
-    const [selectedRowIndex, setSelectedRowIndex] = useState(null);
+interface MultiGroupComparisonItem {
+    comparisonName?: string;
+    comparisonGroups?: string[];
+    [key: string]: any;
+}
+
+interface MultiGroupComparisonTableProps {
+    data?: MultiGroupComparisonItem[];
+    onChange: (newData: MultiGroupComparisonItem[]) => void;
+    disabled?: boolean;
+    groupNames?: string[];
+}
+
+export default function MultiGroupComparisonTable({ data = [], onChange, disabled, groupNames = [] }: MultiGroupComparisonTableProps) {
+    const [selectedRowIndex, setSelectedRowIndex] = useState<number | null>(null);
 
     // --- 自动清理无效组名 & 重新生成比较方案 ---
     useEffect(() => {
@@ -16,13 +29,10 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
 
         const newData = data.map(item => {
             // 1. 过滤无效组名
-            const validGroups = item.comparisonGroups.filter(g => groupNames.includes(g));
-            item.comparisonName = validGroups.length > 0 ? validGroups.join(' vs ') : '';
-
+            const validGroups = item.comparisonGroups.filter((g: string) => groupNames.includes(g));
             // 2. 检查组名是否有变化
             if (validGroups.length !== item.comparisonGroups.length) {
                 hasChanges = true;
-                // 3. 如果有变化，重新生成 comparisonName
                 const newName = validGroups.length > 0 ? validGroups.join(' vs ') : '';
                 return { ...item, comparisonGroups: validGroups, comparisonName: newName };
             }
@@ -39,7 +49,7 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
         setSelectedRowIndex(null);
     }, [data, onChange]);
 
-    const handleDeleteRow = useCallback((index) => {
+    const handleDeleteRow = useCallback((index: number) => {
         onChange(data.filter((_, i) => i !== index));
         setSelectedRowIndex(null);
         message.success('已删除行');
@@ -47,10 +57,10 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
 
     // 全局按键监听 (Delete / Backspace)
     useEffect(() => {
-        const handleGlobalKeyDown = (e) => {
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
             if (selectedRowIndex === null || disabled) return;
             if (e.key === 'Delete' || e.key === 'Backspace') {
-                const activeTag = document.activeElement.tagName;
+                const activeTag = (document.activeElement as HTMLElement).tagName;
                 if (activeTag !== 'INPUT' && activeTag !== 'TEXTAREA') {
                     e.preventDefault();
                     handleDeleteRow(selectedRowIndex);
@@ -61,14 +71,14 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
         return () => window.removeEventListener('keydown', handleGlobalKeyDown);
     }, [selectedRowIndex, handleDeleteRow, disabled]);
 
-    const handleInputKeyDown = (e, index) => {
+    const handleInputKeyDown = (e: React.KeyboardEvent, index: number) => {
         if (e.altKey && (e.key === 'Delete' || e.key === 'Backspace')) {
             e.preventDefault();
             handleDeleteRow(index);
         }
     };
 
-    const handleCellChange = useCallback((index, field, value) => {
+    const handleCellChange = useCallback((index: number, field: string, value: any) => {
         const newData = [...data];
         let currentRow = { ...newData[index], [field]: value };
 
@@ -87,7 +97,7 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
 
     const groupOptions = groupNames.map(name => ({ label: name, value: name }));
 
-    const handleRowClick = (index) => {
+    const handleRowClick = (index: number) => {
         if (!disabled) {
             setSelectedRowIndex(index === selectedRowIndex ? null : index);
         }
@@ -118,7 +128,7 @@ export default function MultiGroupComparisonTable({ data = [], onChange, disable
 
             <div className={styles.tableHeader}>
                 <div className={styles.headerCell} style={{ flex: '0 0 60px' }}>序号</div>
-                <div className={styles.headerCell} style={{ flex: 2 }}>差异分析比较组 (多选) <span style={{color:'#ff4d4f', marginLeft:4}}>*</span></div>
+                <div className={styles.headerCell} style={{ flex: 2 }}>差异分析比较组 (多选) <span style={{ color: '#ff4d4f', marginLeft: 4 }}>*</span></div>
                 <div className={styles.headerCell} style={{ flex: 1 }}>比较方案 (自动生成)</div>
                 <div className={styles.headerCell} style={{ flex: '0 0 80px' }}>操作</div>
             </div>

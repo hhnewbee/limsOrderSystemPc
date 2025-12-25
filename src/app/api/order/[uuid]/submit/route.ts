@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { updateFormData, convertToYidaFormat } from '@/lib/dingtalk';
 import { updateOrderInDb } from '@/lib/orderService';
+import { decrypt } from '@/lib/crypto'; // 🟢
 import type { OrderFormData } from '@/types/order';
 
 interface RouteParams {
@@ -13,7 +14,21 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
   const { uuid } = await params;
 
   try {
-    const data = await request.json() as OrderFormData;
+    const json = await request.json();
+    const data = json as OrderFormData;
+
+    // 🟢 Extract Sales Token
+    const salesToken = (json as any)._salesToken as string | undefined;
+    let operatorId: string | undefined;
+
+    if (salesToken) {
+      try {
+        operatorId = decrypt(salesToken);
+        console.log(`[Submit] Sales Operator ID: ${operatorId}`);
+      } catch (e) {
+        console.warn('[Submit] Invalid Sales Token');
+      }
+    }
 
     // 1. 预检订单状态
     const { data: order, error } = await supabase
@@ -43,7 +58,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         // 需要确保你的 convertToYidaFormat 也支持 TS 类型的入参，或转为 any
         const yidaData = convertToYidaFormat(data);
         console.log('[API] 准备提交到钉钉:', { formInstanceId: order.form_instance_id });
-        await updateFormData(order.form_instance_id, yidaData);
+
+        // 🟢 Pass the Sales Operator ID (if any)
+        await updateFormData(order.form_instance_id, yidaData, operatorId);
+
       } catch (yidaError: any) {
         console.error('[API] 钉钉同步警告:', yidaError.message);
         return NextResponse.json({

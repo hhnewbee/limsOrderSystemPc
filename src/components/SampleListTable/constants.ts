@@ -1,4 +1,4 @@
-// src/components/SampleListTable/constants.js
+// src/components/SampleListTable/constants.ts
 
 export const DETECTION_OPTIONS = [
     { label: '检测', value: '检测' },
@@ -8,17 +8,27 @@ export const DETECTION_OPTIONS = [
 // 行高定义
 export const ROW_HEIGHT_NORMAL = 60;
 export const ROW_HEIGHT_ERROR = 90;
-export const TABLE_HEIGHT = 3400;
+export const TABLE_HEIGHT = 3400; // Original was 3400, kept it consistent
+
+export interface ColumnType {
+    key: string;
+    title: string;
+    width: number;
+    flex?: boolean | string; // flex can be boolean (false) or string ('1')? Actually in legacy code it was mixed.
+    required?: boolean;
+}
 
 // 表格列配置
-export const getColumns = (needBioinformaticsAnalysis) => {
-    const baseColumns = [
+export const getColumns = (needBioinformaticsAnalysis: boolean | string | undefined): ColumnType[] => {
+    const isBio = needBioinformaticsAnalysis === true || needBioinformaticsAnalysis === 'true';
+
+    const baseColumns: ColumnType[] = [
         { key: 'selection', title: '', width: 50, flex: false },
         { key: 'sequenceNo', title: '序号', width: 70, flex: false },
         { key: 'sampleName', title: '样本名称', width: 160, required: true, flex: false },
     ];
 
-    if (needBioinformaticsAnalysis) {
+    if (isBio) {
         baseColumns.push(
             { key: 'analysisName', title: '分析名称', width: 160, required: true, flex: false },
             { key: 'groupName', title: '分组名称', width: 160, required: true, flex: false }

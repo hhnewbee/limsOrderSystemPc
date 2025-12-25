@@ -17,9 +17,9 @@ interface UpdateOptions {
  * 核心数据库更新函数
  */
 export async function updateOrderInDb(
-    uuid: string,
-    data: OrderFormData,
-    options: UpdateOptions = {}
+  uuid: string,
+  data: OrderFormData,
+  options: UpdateOptions = {}
 ): Promise<number> {
   const { isSubmit = false } = options;
 
@@ -50,11 +50,11 @@ export async function updateOrderInDb(
 
   // 2. 更新 orders 主表
   const { data: orderData, error: orderError } = await supabase
-      .from('orders')
-      .update(updatePayload)
-      .eq('uuid', uuid)
-      .select('id')
-      .single();
+    .from('orders')
+    .update(updatePayload)
+    .eq('uuid', uuid)
+    .select('id')
+    .single();
 
   if (orderError || !orderData) {
     console.error('更新订单主表失败:', orderError);
@@ -103,9 +103,9 @@ export async function updateOrderInDb(
 
   if (data.multiGroupComparison && data.multiGroupComparison.length > 0) {
     const multiRows = data.multiGroupComparison.map((item, index) => {
-      let groupsData = item.comparisonGroups;
+      let groupsData: any = item.comparisonGroups;
       if (typeof groupsData === 'string') {
-        groupsData = groupsData.split(',').map(g => g.trim()).filter(g => g);
+        groupsData = groupsData.split(',').map((g: string) => g.trim()).filter((g: string) => g);
       }
       return {
         order_id: orderId,
