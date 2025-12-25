@@ -1,20 +1,55 @@
 'use client';
 
 import React, { useState, useCallback, useRef, useEffect, useMemo } from 'react';
-import { Button, Upload, Checkbox, Modal, App, Alert, Tooltip } from 'antd';
+import { Button, Upload, Modal, App, Alert } from 'antd';
 import {
     PlusOutlined, UploadOutlined, DownloadOutlined,
     FileExcelOutlined, AppstoreAddOutlined, DeleteOutlined, LoadingOutlined,
-    UpOutlined, DownOutlined, WarningOutlined
+    WarningOutlined, UpOutlined, DownOutlined, CopyOutlined
 } from '@ant-design/icons';
-import { VariableSizeList as List } from 'react-window';
-import type { UploadFile } from 'antd/es/upload/interface';
+import { AgGridReact } from 'ag-grid-react';
+import {
+    ColDef,
+    ModuleRegistry,
+    ClientSideRowModelModule,
+    ICellEditorParams,
+    ValueFormatterParams,
+    GridReadyEvent,
+    CellValueChangedEvent,
+    ValidationModule,
+    RowSelectionModule,
+    TextEditorModule,
+    CellStyleModule,
+    TooltipModule,
+    CustomEditorModule,
+    RowApiModule,
+    ScrollApiModule,
+    RenderApiModule,
+    HighlightChangesModule
+} from 'ag-grid-community';
 
-import TableRow from './TableRow';
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-quartz.css";
+
 import BatchAddModal from './BatchAddModal';
-import { getColumns, ROW_HEIGHT_NORMAL, ROW_HEIGHT_ERROR, TABLE_HEIGHT } from './constants';
+import { AgAntdSelectEditor, AgAntdNumberEditor } from './AgCellEditors';
 import styles from './SampleListTable.module.scss';
+import { DETECTION_OPTIONS } from './constants';
 
+// Register AG Grid Modules
+ModuleRegistry.registerModules([
+    ClientSideRowModelModule,
+    ValidationModule,
+    RowSelectionModule,
+    TextEditorModule,
+    CellStyleModule,
+    TooltipModule,
+    CustomEditorModule,
+    RowApiModule,
+    ScrollApiModule,
+    RenderApiModule,
+    HighlightChangesModule
+]);
 
 export interface SampleItem {
     sampleName?: string;
@@ -33,62 +68,19 @@ interface SampleListTableProps {
     disabled?: boolean;
     needBioinformaticsAnalysis?: boolean | string;
     errors?: any;
-    message?: any; // Accepting drilled message instance
+    message?: any;
 }
 
-export default function SampleListTable({ data, onChange, onBlur, disabled, needBioinformaticsAnalysis, errors, message: parentMessage }: SampleListTableProps) {
-    // 优先使用传入的 message
+const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformaticsAnalysis, errors, message: parentMessage }: SampleListTableProps) => {
     const { message: appMessage } = App.useApp();
     const message = parentMessage || appMessage;
 
-    const listRef = useRef<List>(null);
-    const columns = getColumns(needBioinformaticsAnalysis);
+    // Grid Ref
+    const gridRef = useRef<AgGridReact>(null);
+    const [isBatchAddOpen, setIsBatchAddOpen] = useState(false);
+    const [importing, setImporting] = useState(false);
 
-    // [Performance] Cache data to stabilize callbacks
-    const dataRef = useRef(data);
-    dataRef.current = data;
-
-    // [新增] 状态管理
-    const [selectedRows, setSelectedRows] = useState<Set<number>>(new Set()); // 存储选中行的索引
-    const [isBatchAddOpen, setIsBatchAddOpen] = useState(false); // 控制弹窗
-    const [importing, setImporting] = useState(false); // [新增] 导入加载状态
-    const [currentErrorPointer, setCurrentErrorPointer] = useState(0); // [新增] 当前定位的错误索引指针
-
-    // 监听数据或错误变化，重置列表高度计算
-    useEffect(() => {
-        if (listRef.current) {
-            listRef.current.resetAfterIndex(0);
-        }
-    }, [data, errors]);
-
-    // --- 选中逻辑 ---
-
-    // 切换单行选中
-    const handleToggleRow = useCallback((index: number) => {
-        setSelectedRows(prev => {
-            const newSet = new Set(prev);
-            if (newSet.has(index)) newSet.delete(index);
-            else newSet.add(index);
-            return newSet;
-        });
-    }, []);
-
-    // 切换全选
-    const handleToggleAll = useCallback((e: any) => {
-        if (e.target.checked) {
-            const newSet = new Set<number>();
-            data.forEach((_, i) => newSet.add(i));
-            setSelectedRows(newSet);
-        } else {
-            setSelectedRows(new Set());
-        }
-    }, [data]);
-
-    // 计算全选框的状态
-    const isAllSelected = data.length > 0 && selectedRows.size === data.length;
-    const isIndeterminate = selectedRows.size > 0 && selectedRows.size < data.length;
-
-    // --- 错误导航逻辑 ---
+    // --- Error Navigation Logic ---
     const errorIndices = useMemo(() => {
         if (!errors) return [];
         return Object.keys(errors)
@@ -100,120 +92,258 @@ export default function SampleListTable({ data, onChange, onBlur, disabled, need
             .sort((a, b) => a - b);
     }, [errors]);
 
-    // 重置指针当错误列表变化时 (可选，或者保留以尝试维持上下文)
-    useEffect(() => {
-        setCurrentErrorPointer(0);
-    }, [errorIndices.length]);
+    const [currentErrorPointer, setCurrentErrorPointer] = useState(0);
 
     const jumpToError = (direction: 'next' | 'prev') => {
         if (errorIndices.length === 0) return;
-
         let nextPointer = direction === 'next' ? currentErrorPointer + 1 : currentErrorPointer - 1;
-
-        // 循环
         if (nextPointer >= errorIndices.length) nextPointer = 0;
         if (nextPointer < 0) nextPointer = errorIndices.length - 1;
-
         setCurrentErrorPointer(nextPointer);
+
         const rowIndex = errorIndices[nextPointer];
-
-        // 滚动到该行 (居中显示)
-        listRef.current?.scrollToItem(rowIndex, 'center');
-        // 也可以高亮一下? (暂不处理复杂高亮)
+        gridRef.current?.api.ensureIndexVisible(rowIndex, 'middle');
+        const rowNode = gridRef.current?.api.getDisplayedRowAtIndex(rowIndex);
+        if (rowNode) {
+            gridRef.current?.api.flashCells({ rowNodes: [rowNode] }); // Flash the error row
+        }
     };
 
-    // --- 批量操作逻辑 ---
+    // --- Validation Styles ---
+    // Re-draw rows if errors change to update styles
+    useEffect(() => {
+        if (gridRef.current?.api) {
+            gridRef.current.api.redrawRows();
+        }
+    }, [errors]);
 
-    // 批量添加回调
-    const handleBatchAdd = (newRows: SampleItem[]) => {
-        onChange([...data, ...newRows]);
-        message.success(`已批量添加 ${newRows.length} 条数据`);
-        setIsBatchAddOpen(false);
-        // [新增] 立即触发校验
-        setTimeout(() => {
-            if (onBlur) onBlur('sampleList');
-        }, 0);
+    const getCellClass = (params: any) => {
+        const rowIndex = params.node.rowIndex;
+        const colId = params.colDef.field;
+        // Check exact field error
+        const hasError = errors?.[rowIndex]?.[colId];
+        return hasError ? styles.cellError : undefined;
     };
 
-    // 批量删除
-    const handleBatchDelete = () => {
-        if (selectedRows.size === 0) return;
+    // Restoring Row Actions
+    const handleCopyRow = useCallback((rowIndex: number) => {
+        const rowToCopy = data[rowIndex];
+        if (!rowToCopy) return;
+        const newRow = { ...rowToCopy, sampleName: `${rowToCopy.sampleName}_copy` };
+        const newData = [...data];
+        newData.splice(rowIndex + 1, 0, newRow);
+        onChange(newData);
+        message.success('复制成功');
+    }, [data, onChange]);
+
+    const handleDeleteRow = useCallback((rowIndex: number) => {
         Modal.confirm({
             title: '确认删除',
-            content: `确定要删除选中的 ${selectedRows.size} 条数据吗？`,
+            content: '确定要删除此行数据吗？',
             onOk: () => {
-                const newData = data.filter((_, index) => !selectedRows.has(index));
+                const newData = data.filter((_, idx) => idx !== rowIndex);
                 onChange(newData);
-                setSelectedRows(new Set()); // 清空选中
+                message.success('删除成功');
+            }
+        });
+    }, [data, onChange]);
+
+    const ActionCellRenderer = (params: any) => {
+        const rowIndex = params.node.rowIndex;
+        return (
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                <Button
+                    type="text"
+                    icon={<CopyOutlined />}
+                    size="small"
+                    onClick={() => handleCopyRow(rowIndex)}
+                    title="复制行"
+                />
+                <Button
+                    type="text"
+                    danger
+                    icon={<DeleteOutlined />}
+                    size="small"
+                    onClick={() => handleDeleteRow(rowIndex)}
+                    title="删除行"
+                />
+            </div>
+        );
+    };
+
+    // --- Column Definitions ---
+    const columnDefs = useMemo<ColDef[]>(() => {
+        const isBio = needBioinformaticsAnalysis === true || needBioinformaticsAnalysis === 'true';
+
+        const getErrorMessage = (params: any) => {
+            const rowIndex = params.node?.rowIndex;
+            if (rowIndex === undefined || rowIndex === null) return undefined;
+            const colId = params.colDef?.field;
+            return errors?.[rowIndex]?.[colId];
+        };
+
+        const commonColProps: Partial<ColDef> = {
+            editable: !disabled,
+            cellClass: getCellClass,
+            tooltipValueGetter: getErrorMessage
+        };
+
+        const cols: ColDef[] = [
+            {
+                headerCheckboxSelection: !disabled,
+                checkboxSelection: !disabled,
+                width: 50,
+                pinned: 'left',
+                lockPosition: true,
+                suppressMovable: true,
+                resizable: false
+            },
+            {
+                headerName: '序号',
+                valueGetter: "node.rowIndex + 1",
+                width: 70,
+                pinned: 'left',
+                resizable: false
+            },
+            {
+                field: 'sampleName',
+                headerName: '样本名称',
+                width: 160,
+                ...commonColProps
+            }
+        ];
+
+        if (isBio) {
+            cols.push(
+                {
+                    field: 'analysisName',
+                    headerName: '分析名称',
+                    width: 160,
+                    ...commonColProps
+                },
+                {
+                    field: 'groupName',
+                    headerName: '分组名称',
+                    width: 160,
+                    ...commonColProps
+                }
+            );
+        }
+
+        cols.push(
+            {
+                field: 'detectionOrStorage',
+                headerName: '检测或暂存',
+                width: 130,
+                cellEditor: AgAntdSelectEditor,
+                cellEditorParams: {
+                    options: DETECTION_OPTIONS
+                },
+                ...commonColProps
+            },
+            {
+                field: 'sampleTubeCount',
+                headerName: '样品管数',
+                width: 100,
+                cellEditor: AgAntdNumberEditor,
+                ...commonColProps
+            },
+            {
+                field: 'experimentDescription',
+                headerName: '备注',
+                flex: 1,
+                minWidth: 200,
+                ...commonColProps
+            }
+        );
+
+        // Action Column
+        if (!disabled) {
+            cols.push({
+                headerName: '操作',
+                width: 100,
+                pinned: 'right',
+                cellRenderer: ActionCellRenderer,
+                sortable: false,
+                filter: false,
+                resizable: false
+            });
+        }
+
+        return cols;
+    }, [disabled, needBioinformaticsAnalysis, errors, handleCopyRow, handleDeleteRow]);
+    // Dependencies: errors included to rebuild colDefs? 
+    // Actually cellClass function is stable if defined outside, but inside relies on 'errors' closure?
+    // 'getCellClass' relies on 'errors'. So if 'errors' update, we need new getCellClass or use ref.
+    // 'errors' is in scope. If passed to cellClass, AG Grid calls it.
+    // Grid Api redrawRows handles re-calling it.
+
+    const defaultColDef = useMemo<ColDef>(() => ({
+        sortable: false,
+        filter: false,
+        resizable: true,
+    }), []);
+
+    // --- Data Handling ---
+    const onCellValueChanged = useCallback((event: CellValueChangedEvent) => {
+        // AG Grid updates 'data' object in place (mutable).
+        // But React needs immutable update to trigger effects?
+        // Actually, if we pass deep copy to grid, grid mutates IT.
+        // We should gather all rows data from Grid and call onChange?
+        // OR: Update 'data' prop (which is our state) by modifying the changed row index.
+
+        const rowIndex = event.node.rowIndex;
+        if (rowIndex === null || rowIndex === undefined) return;
+
+        const updatedRow = event.data;
+        const newData = [...data]; // Shallow copy array
+        newData[rowIndex] = { ...updatedRow }; // Copy object to ensure ref change for row
+        onChange(newData);
+
+        // Trigger validation ?
+        // onBlur can be mapped differently. Maybe debounce auto-save?
+        // "Local State" logic: Grid is now local state. 
+        // We commit to Global State on Change.
+    }, [data, onChange]);
+
+    // Add Row
+    const handleAddRow = () => {
+        const newRow: SampleItem = {
+            sampleName: '', analysisName: '', groupName: '',
+            detectionOrStorage: '检测', sampleTubeCount: 1, experimentDescription: ''
+        };
+        onChange([...data, newRow]);
+    };
+
+    // Selection & Delete
+    const handleDeleteSelected = () => {
+        const selectedNodes = gridRef.current?.api.getSelectedNodes();
+        if (!selectedNodes || selectedNodes.length === 0) return;
+
+        const selectedIndices = new Set(selectedNodes.map(n => n.rowIndex));
+        Modal.confirm({
+            title: '确认删除',
+            content: `确定要删除选中的 ${selectedIndices.size} 条数据吗？`,
+            onOk: () => {
+                const newData = data.filter((_, index) => !selectedIndices.has(index));
+                onChange(newData);
                 message.success('删除成功');
             }
         });
     };
 
-    // --- 原有逻辑 ---
-
-    const getItemSize = useCallback((index: number) => {
-        const rowErrors = errors?.[index];
-        const hasError = rowErrors && Object.values(rowErrors).some(err => !!err);
-        return hasError ? ROW_HEIGHT_ERROR : ROW_HEIGHT_NORMAL;
-    }, [errors]);
-
-    const calculateTotalHeight = () => {
-        return data.reduce((total, _, index) => total + getItemSize(index), 0);
-    };
-
-    const handleAddRow = useCallback(() => {
-        const currentData = dataRef.current;
-        const newRow: SampleItem = {
-            sampleName: '', analysisName: '', groupName: '',
-            detectionOrStorage: '检测', sampleTubeCount: 1, experimentDescription: ''
-        };
-        onChange([...currentData, newRow]);
-    }, [onChange]);
-
-    const handleCopyRow = useCallback((index: number) => {
-        const currentData = dataRef.current;
-        const newData = [...currentData];
-        newData.splice(index + 1, 0, { ...currentData[index] });
-        onChange(newData);
-        message.success('行已复制');
-    }, [onChange, message]);
-
-    const handleDeleteRow = useCallback((index: number) => {
-        const currentData = dataRef.current;
-        const newData = currentData.filter((_, i) => i !== index);
-        onChange(newData);
-        // 如果删除了行，为防止索引错位，建议清空选中
-        if (selectedRows.size > 0) setSelectedRows(new Set());
-    }, [onChange, selectedRows]); // removed data dependency
-
-    const handleCellChange = useCallback((index: number, field: string, value: any) => {
-        const currentData = dataRef.current;
-        const newData = [...currentData];
-        newData[index] = { ...newData[index], [field]: value };
-        onChange(newData);
-    }, [onChange]); // removed data dependency
-
-    // 🟢 handleBlur wrapper
-    const handleBlur = useCallback((field: string) => {
-        if (onBlur) {
-            onBlur('sampleList'); // Trigger validation for whole list
-        }
-    }, [onBlur]);
-
-
-    const handleImport = useCallback((file: File) => {
-        // 1. 简单的文件大小校验 (可选，比如限制 5MB)
+    // Import/Export logic (simplified reuse)
+    // ... [Reuse import logic from previous impl] ... 
+    // Copied for simplicity:
+    const handleImport = async (file: File) => {
         if (file.size / 1024 / 1024 > 5) {
-            message.error('文件过大，请上传 5MB 以内的 Excel 文件');
+            message.error('文件过大');
             return false;
         }
-        setImporting(true); // 开启 Loading
-
+        setImporting(true);
         const reader = new FileReader();
         reader.onload = async (e) => {
             try {
-                // Dynamic import
                 const XLSX = await import('xlsx');
                 const workbook = XLSX.read(e.target?.result, { type: 'binary' });
                 const jsonData = XLSX.utils.sheet_to_json<any>(workbook.Sheets[workbook.SheetNames[0]]);
@@ -227,127 +357,61 @@ export default function SampleListTable({ data, onChange, onBlur, disabled, need
                 }));
                 onChange([...data, ...importedData]);
                 message.success(`成功导入 ${importedData.length} 条数据`);
-                // [新增] 立即触发校验
-                setTimeout(() => {
-                    if (onBlur) onBlur('sampleList');
-                }, 0);
+                setTimeout(() => { if (onBlur) onBlur('sampleList'); }, 0);
             } catch (err) {
                 console.error(err);
-                message.error('导入失败，请检查文件格式是否正确');
+                message.error('导入失败');
             } finally {
-                setImporting(false); // 关闭 Loading
+                setImporting(false);
             }
         };
-        // Ensure UI updates before heavy work
-        setTimeout(() => reader.readAsBinaryString(file), 0);
+        reader.readAsBinaryString(file);
         return false;
-    }, [data, onChange, message]);
-
-    const handleExportData = useCallback(async () => {
-        if (data.length === 0) {
-            message.warning('没有数据可导出');
-            return;
-        }
-        // Dynamic import
-        const XLSX = await import('xlsx');
-
-        const exportData = data.map((item, index) => {
-            const row: any = {
-                '序号': index + 1,
-                '样本名称': item.sampleName || '',
-            };
-            if (needBioinformaticsAnalysis) {
-                row['分析名称'] = item.analysisName || '';
-                row['分组名称'] = item.groupName || '';
-            }
-            row['检测或暂存'] = item.detectionOrStorage || '';
-            row['样品管数'] = item.sampleTubeCount || 1;
-            row['实验设计描述及样本备注'] = item.experimentDescription || '';
-            return row;
-        });
-
-        const worksheet = XLSX.utils.json_to_sheet(exportData);
-        // ... 设置列宽代码 (略) ...
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, '样本清单');
-        XLSX.writeFile(workbook, `样本清单_${new Date().toISOString().slice(0, 10)}.xlsx`);
-        message.success('导出成功');
-    }, [data, needBioinformaticsAnalysis, message]);
-
-    const handleDownloadTemplate = async () => {
-        const XLSX = await import('xlsx');
-        const worksheet = XLSX.utils.json_to_sheet([{ '样本名称': 'Sample1', '分析名称': 'Ana1', '分组名称': 'GroupA', '检测或暂存': '检测', '样品管数': 1 }]);
-        const workbook = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(workbook, worksheet, '模板');
-        XLSX.writeFile(workbook, '样本清单模板.xlsx');
     };
 
-    // 使用 useMemo 封装 itemData，并传入选中状态
-    const itemData = useMemo(() => ({
-        items: data,
-        errors,
-        disabled,
-        needBioinformaticsAnalysis,
-        selectedRows, // [新增]
-        onCellChange: handleCellChange,
-        onDeleteRow: handleDeleteRow,
-        onCopyRow: handleCopyRow,
-        onToggleRow: handleToggleRow, // [新增]
-        handleBlur // 🟢 Passed onBlur handler
-    }), [data, errors, disabled, needBioinformaticsAnalysis, selectedRows, handleCellChange, handleDeleteRow, handleCopyRow, handleToggleRow, handleBlur]);
+    // Batch Add Callback
+    const handleBatchAdd = (newRows: SampleItem[]) => {
+        onChange([...data, ...newRows]);
+        message.success(`已批量添加 ${newRows.length} 条数据`);
+        setIsBatchAddOpen(false);
+        setTimeout(() => { if (onBlur) onBlur('sampleList'); }, 0);
+    };
+
+    // Validation Trigger
+    const onGridBlur = (event: any) => {
+        // Trigger validation when focus leaves grid?
+        // AG Grid doesn't have a simple 'onBlur' for whole grid.
+        // We can use onCellEditingStopped -> trigger validation for that field?
+    };
+
+    const onCellEditingStopped = useCallback((event: any) => {
+        // Optionally validate single field or whole list
+        // if (onBlur) onBlur('sampleList'); 
+        // But this might be too frequent. Let user click Save or manual check?
+        // User requested "Immediate Validation".
+        if (onBlur) onBlur('sampleList');
+    }, [onBlur]);
 
     return (
         <div className={styles.sampleTableContainer}>
             <h3>样本清单</h3>
-
             <div className={styles.comparisonNote}>
                 <p>1. "样本名称"应与管子一致，不可包含中文字符或特殊字符，长度控制在10字符内。</p>
                 <p>2. "分析名称"和"分组名称"仅限字母、数字、下划线，长度控制在8字符内，首字符需为字母。</p>
             </div>
 
-            <div className={styles.tableToolbar}>
-                <div className={styles.tableActions}>
-                    {!disabled && (
-                        <>
-                            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddRow}>添加样本行</Button>
-                            {/* [新增] 批量添加按钮 */}
-                            <Button icon={<AppstoreAddOutlined />} onClick={() => setIsBatchAddOpen(true)}>
-                                {needBioinformaticsAnalysis ? '新增分组' : '批量新增'}
-                            </Button>
-
-                            <Upload accept=".xlsx,.xls" showUploadList={false} beforeUpload={handleImport}>
-                                <Button loading={importing} icon={importing ? <LoadingOutlined /> : <UploadOutlined />}>{importing ? '处理中...' : '批量导入'}</Button>
-                            </Upload>
-                        </>
-                    )}
-                    <Button icon={<DownloadOutlined />} onClick={handleDownloadTemplate}>下载模板</Button>
-                    <Button icon={<FileExcelOutlined />} onClick={handleExportData}>导出所有数据</Button>
-                    {/* [新增] 批量删除按钮，仅当有选中项时显示 */}
-                    {selectedRows.size > 0 && (
-                        <Button danger icon={<DeleteOutlined />} onClick={handleBatchDelete}>
-                            删除选中 ({selectedRows.size})
-                        </Button>
-                    )}
-                </div>
-                <span className={styles.dataCount}>已录入 {data.length} 条样本</span>
-            </div>
-
-            {/* [新增] 错误导航条 */}
+            {/* Error Banner */}
             {errorIndices.length > 0 && (
                 <Alert
                     message={
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             <span>
                                 <WarningOutlined style={{ marginRight: 8 }} />
-                                发现 <strong>{errorIndices.length}</strong> 行数据存在错误，建议修正后再提交。
+                                发现 <strong>{errorIndices.length}</strong> 行数据存在错误。
                             </span>
                             <div style={{ display: 'flex', gap: 8 }}>
-                                <Button size="small" icon={<UpOutlined />} onClick={() => jumpToError('prev')}>
-                                    上一处
-                                </Button>
-                                <Button size="small" icon={<DownOutlined />} onClick={() => jumpToError('next')}>
-                                    下一处 ({currentErrorPointer + 1}/{errorIndices.length})
-                                </Button>
+                                <Button size="small" icon={<UpOutlined />} onClick={() => jumpToError('prev')}>上一处</Button>
+                                <Button size="small" icon={<DownOutlined />} onClick={() => jumpToError('next')}>下一处 ({currentErrorPointer + 1}/{errorIndices.length})</Button>
                             </div>
                         </div>
                     }
@@ -356,68 +420,44 @@ export default function SampleListTable({ data, onChange, onBlur, disabled, need
                 />
             )}
 
-            <div className={styles.virtualTableContainer}>
-                <div className={styles.tableHeader}>
-                    {columns.map(col => {
-                        // [新增] 特殊处理第一列（选择列）的表头，渲染全选框
-                        if (col.key === 'selection') {
-                            return (
-                                <div
-                                    key={col.key}
-                                    className={styles.tableHeaderCell}
-                                    style={{
-                                        width: col.width,
-                                        flex: `0 0 ${col.width}px`,
-                                        justifyContent: 'center',
-                                        minWidth: col.width
-                                    }}
-                                >
-                                    {!disabled && (
-                                        <Checkbox
-                                            checked={isAllSelected}
-                                            indeterminate={isIndeterminate}
-                                            onChange={handleToggleAll}
-                                        />
-                                    )}
-                                </div>
-                            );
-                        }
-                        return (
-                            <div
-                                key={col.key}
-                                className={styles.tableHeaderCell}
-                                style={{
-                                    width: col.flex ? undefined : (typeof col.width === 'number' ? `${col.width}px` : col.width),
-                                    flex: col.flex ? 1 : `0 0 ${col.width}px`,
-                                    minWidth: col.width
-                                }}
-                            >
-                                {col.required && <span style={{ color: '#ff4d4f', marginRight: 4 }}>*</span>}
-                                {col.title}
-                            </div>
-                        );
-                    })}
+            <div className={styles.tableToolbar}>
+                <div className={styles.tableActions}>
+                    {!disabled && (
+                        <>
+                            <Button type="primary" icon={<PlusOutlined />} onClick={handleAddRow}>添加样本行</Button>
+                            <Button icon={<AppstoreAddOutlined />} onClick={() => setIsBatchAddOpen(true)}>
+                                {needBioinformaticsAnalysis ? '新增分组' : '批量新增'}
+                            </Button>
+                            <Upload accept=".xlsx,.xls" showUploadList={false} beforeUpload={handleImport}>
+                                <Button loading={importing} icon={importing ? <LoadingOutlined /> : <UploadOutlined />}>批量导入</Button>
+                            </Upload>
+                            <Button danger icon={<DeleteOutlined />} onClick={handleDeleteSelected}>
+                                删除选中
+                            </Button>
+                        </>
+                    )}
                 </div>
-
-                {data.length > 0 ? (
-                    <List
-                        ref={listRef}
-                        height={Math.min(TABLE_HEIGHT, calculateTotalHeight() || 100)}
-                        itemCount={data.length}
-                        itemSize={getItemSize}
-                        width="100%"
-                        itemData={itemData}
-                    >
-                        {TableRow}
-                    </List>
-                ) : (
-                    <div style={{ padding: '60px', textAlign: 'center', color: '#bfbfbf', fontSize: '15px' }}>
-                        暂无数据，请添加或导入样本
-                    </div>
-                )}
+                <span className={styles.dataCount}>已录入 {data.length} 条样本</span>
             </div>
 
-            {/* [新增] 批量添加弹窗 */}
+            <div className="ag-theme-quartz" style={{ height: 500, width: '100%' }}>
+                <AgGridReact
+                    theme="legacy"
+                    ref={gridRef}
+                    tooltipShowDelay={0}
+                    rowData={data}
+                    columnDefs={columnDefs}
+                    defaultColDef={defaultColDef}
+                    rowSelection="multiple"
+                    suppressRowClickSelection={true}
+                    onCellValueChanged={onCellValueChanged}
+                    onCellEditingStopped={onCellEditingStopped}
+                    stopEditingWhenCellsLoseFocus={true} // Excel like behavior
+                    enterNavigatesVerticallyAfterEdit={true}
+                    enterNavigatesVertically={true}
+                />
+            </div>
+
             <BatchAddModal
                 open={isBatchAddOpen}
                 onCancel={() => setIsBatchAddOpen(false)}
@@ -426,4 +466,6 @@ export default function SampleListTable({ data, onChange, onBlur, disabled, need
             />
         </div>
     );
-}
+};
+
+export default AgSampleListTable;

@@ -123,15 +123,14 @@
     }
   }
 
-  // 错误提示：位于文档流中，自然撑开高度
-  .cellErrorText {
-    color: #ff4d4f;
-    font-size: 13px;
-    line-height: 1.5;
-    margin-top: 4px;
-    font-weight: 500;
-    padding-left: 2px;
-    animation: fadeIn 0.3s ease-out;
+  // AG Grid Error Style
+  .cellError {
+    background-color: #fff1f0 !important;
+    border: 1px solid #ffccc7 !important;
+    color: #cf1322 !important;
+    
+    // Ensure the text aligns with standard cells if needed
+    // But AG Grid usually handles reasonable defaults
   }
 }
 

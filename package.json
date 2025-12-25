@@ -16,6 +16,8 @@
     "@ant-design/icons": "^5.4.0",
     "@ant-design/v5-patch-for-react-19": "^1.0.3",
     "@supabase/supabase-js": "^2.89.0",
+    "ag-grid-community": "^35.0.0",
+    "ag-grid-react": "^35.0.0",
     "antd": "^5.21.0",
     "axios": "^1.7.2",
     "dayjs": "^1.11.12",
