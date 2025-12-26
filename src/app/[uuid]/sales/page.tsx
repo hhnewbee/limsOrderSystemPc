@@ -180,7 +180,7 @@ function SalesOrderContent() {
                             <div className={styles.orderInfoCard}>
                                 <div className={styles.label}>项目编号</div>
                                 <div className={styles.value}>
-                                    {orderData.projectNumber || '系统生成中...'}
+                                    {orderData.productNo || '系统生成中...'}
                                 </div>
                             </div>
                             <ProjectInfoModule data={orderData} />

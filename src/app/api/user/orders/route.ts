@@ -26,6 +26,7 @@ export async function GET(request: NextRequest) {
                 id,
                 uuid,
                 project_number,
+                product_no,
                 customer_name,
                 customer_unit,
                 service_type,

@@ -27,7 +27,8 @@ export interface DBOrder {
     shipping_method?: string;
     express_company_waybill?: string;
     shipping_time?: string; // ISO String
-    project_number?: string;
+    project_number?: string; // UUID link code
+    product_no?: string; // Real project number from DingTalk
     unit_price?: number;
     other_expenses?: number;
     salesman_name?: string;
@@ -98,7 +99,8 @@ export interface OrderFormData {
     shippingMethod?: string;
     expressCompanyWaybill?: string;
     shippingTime?: string;
-    projectNumber?: string;
+    projectNumber?: string; // This is the UUID link code
+    productNo?: string; // Real project number from DingTalk (ProductNo)
     unitPrice?: number;
     otherExpenses?: number;
     salesmanName?: string;
@@ -130,7 +132,8 @@ export interface OrderFormData {
 
 // 1. 定义钉钉宜搭原始表单数据的接口 (根据 dingtalk.js 中的解析逻辑推断)
 export interface YidaRawFormData {
-    UniqueIdentification?: string;
+    UniqueIdentification?: string; // UUID link code
+    ProductNo?: string; // Real project number from DingTalk
     CustomerUnit?: string;
     CustomerName?: string;
     DepartmentsDepartmentsDepartments?: string;

@@ -49,7 +49,8 @@ export function dbToApp(
         shippingTime: dbOrder.shipping_time,
 
         // 项目信息
-        projectNumber: dbOrder.project_number,
+        projectNumber: dbOrder.project_number, // UUID link code
+        productNo: dbOrder.product_no, // Real project number from DingTalk
         unitPrice: dbOrder.unit_price,
         otherExpenses: dbOrder.other_expenses,
         salesmanName: dbOrder.salesman_name,
@@ -137,6 +138,7 @@ export function appToDb(formData: Partial<OrderFormData>): Partial<DBOrder> {
     }
 
     assign('project_number', formData.projectNumber);
+    assign('product_no', formData.productNo);
     assign('unit_price', formData.unitPrice);
     assign('other_expenses', formData.otherExpenses);
     assign('salesman_name', formData.salesmanName);
@@ -205,7 +207,8 @@ export function yidaToApp(
         expressCompanyWaybill: formData.ExpressCompanyAndWaybillNumber,
         shippingTime: toDateString(formData.SampleDeliveryTime),
 
-        projectNumber: formData.UniqueIdentification,
+        projectNumber: formData.UniqueIdentification, // UUID link code
+        productNo: formData.ProductNo, // Real project number from DingTalk
         unitPrice: toNumber(formData.UnitPriceOfTestingServiceFee),
         otherExpenses: toNumber(formData.OtherExpenses),
 
@@ -254,6 +257,7 @@ export function appToYida(data: Partial<OrderFormData>): YidaRawFormData {
         SampleDeliveryTime: toTimestamp(data.shippingTime),
 
         UniqueIdentification: data.projectNumber,
+        ProductNo: data.productNo,
         UnitPriceOfTestingServiceFee: data.unitPrice,
         OtherExpenses: data.otherExpenses,
 

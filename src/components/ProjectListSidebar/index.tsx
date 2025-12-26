@@ -11,7 +11,8 @@ import styles from './ProjectListSidebar.module.scss';
 interface OrderItem {
     id: number;
     uuid: string;
-    project_number: string;
+    project_number: string; // UUID link code
+    product_no: string; // Real project number from DingTalk
     customer_name: string;
     customer_unit: string;
     service_type: string;
@@ -116,7 +117,7 @@ export default function ProjectListSidebar() {
                         >
                             <div className={styles.projectNumber}>
                                 <FileTextOutlined />
-                                {order.project_number || '待生成'}
+                                {order.product_no || order.project_number || '待生成'}
                             </div>
                             <div className={styles.customerName}>
                                 {order.customer_name} · {order.service_type || '多肽测序'}
