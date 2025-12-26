@@ -20,7 +20,8 @@ body {
   padding: 16px;
 
   /* 2. 关键：顶部增加 padding，避开固定的 Header */
-  padding-top: 84px; /* 64px(Header高度) + 20px(间距) */
+  padding-top: 84px;
+  /* 64px(Header高度) + 20px(间距) */
 
   /* 底部留白给 SubmitArea */
   padding-bottom: 100px;
@@ -32,7 +33,8 @@ body {
   padding: 20px;
   margin-bottom: 16px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.03), 0 1px 6px -1px rgba(0, 0, 0, 0.02), 0 2px 4px rgba(0, 0, 0, 0.02);
-  border: none !important; /* 去掉以前可能残留的边框 */
+  border: none !important;
+  /* 去掉以前可能残留的边框 */
   box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03) !important;
 }
 
@@ -66,14 +68,15 @@ body {
   margin-bottom: 12px;
 }
 
-.ant-form-item-label > label {
+.ant-form-item-label>label {
   font-size: 14px !important;
   color: #262626 !important;
 }
 
 .readonly-field {
   font-size: 16px !important;
-  color: #000000 !important; /* 纯黑，看得清 */
+  color: #000000 !important;
+  /* 纯黑，看得清 */
 }
 
 .readonly-text {
@@ -101,7 +104,7 @@ body {
 }
 
 /* 重复的定义保留，但移除了 :global */
-.ant-form-item-label > label {
+.ant-form-item-label>label {
   font-size: 14px;
   color: #262626;
 }
@@ -258,4 +261,33 @@ body {
 
 .comparison-note p:last-child {
   margin-bottom: 0;
+}
+
+/* AG Grid Tooltip - 修复阴影叠加问题 */
+.ag-tooltip {
+  background-color: #333 !important;
+  color: #fff !important;
+  padding: 8px 12px !important;
+  border-radius: 4px !important;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+  font-size: 13px !important;
+  max-width: 300px !important;
+  z-index: 10000 !important;
+}
+
+/* 确保 tooltip 不会多次叠加 */
+.ag-popup {
+  z-index: 10000 !important;
+}
+
+/* AG Grid cell vertical alignment */
+.ag-theme-quartz .ag-cell {
+  display: flex !important;
+  align-items: center !important;
+}
+
+.ag-theme-quartz .ag-cell-value {
+  display: flex !important;
+  align-items: center !important;
+  height: 100% !important;
 }

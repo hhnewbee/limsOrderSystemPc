@@ -5,9 +5,15 @@ import { updateFormData, convertToYidaFormat } from '@/lib/dingtalk';
 import { updateOrderInDb } from '@/lib/orderService';
 import { decrypt } from '@/lib/crypto'; // 🟢
 import type { OrderFormData } from '@/types/order';
+import { randomBytes } from 'crypto';
 
 interface RouteParams {
   params: Promise<{ uuid: string }>;
+}
+
+// Generate a random token for samples view link
+function generateSamplesToken(): string {
+  return randomBytes(16).toString('hex'); // 32 character hex string
 }
 
 export async function POST(request: NextRequest, { params }: RouteParams) {
@@ -33,7 +39,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     // 1. 预检订单状态
     const { data: order, error } = await supabase
       .from('orders')
-      .select('id, form_instance_id, status, table_status')
+      .select('id, form_instance_id, status, table_status, samples_view_token')
       .eq('uuid', uuid)
       .single();
 
@@ -48,16 +54,39 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: '订单已提交，不能重复提交' }, { status: 400 });
     }
 
-    // 2. 更新数据库 (设置 status='submitted')
+    // 2. Generate samples view token if not exists
+    let samplesViewToken = order.samples_view_token;
+    if (!samplesViewToken) {
+      samplesViewToken = generateSamplesToken();
+      console.log(`[Submit] Generated samples_view_token: ${samplesViewToken}`);
+    }
+
+    // Build samples link URL (using /v/ prefix to avoid route conflicts)
+    const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+    const samplesLink = `${baseUrl}/${uuid}/v/${samplesViewToken}`;
+
+    // 3. 更新数据库 (设置 status='submitted' 和 samples_view_token)
     await updateOrderInDb(uuid, data, { isSubmit: true });
 
-    // 3. 提交到钉钉宜搭
+    // Update samples_view_token separately if newly generated
+    if (!order.samples_view_token) {
+      await supabase
+        .from('orders')
+        .update({ samples_view_token: samplesViewToken })
+        .eq('uuid', uuid);
+    }
+
+    // 4. 提交到钉钉宜搭
     const tableStatus = '客户已提交';
     if (order.form_instance_id) {
       try {
         // 需要确保你的 convertToYidaFormat 也支持 TS 类型的入参，或转为 any
         const yidaData = convertToYidaFormat(data);
-        console.log('[API] 准备提交到钉钉:', { formInstanceId: order.form_instance_id });
+
+        // Add SamplesLink to yidaData
+        yidaData.SamplesLink = samplesLink;
+
+        console.log('[API] 准备提交到钉钉:', { formInstanceId: order.form_instance_id, samplesLink });
 
         // 🟢 Pass the Sales Operator ID (if any)
         await updateFormData(order.form_instance_id, yidaData, operatorId);
@@ -71,7 +100,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // 4. 更新 table_status
+    // 5. 更新 table_status
     await supabase
       .from('orders')
       .update({ table_status: tableStatus })
@@ -80,7 +109,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     return NextResponse.json({
       success: true,
       message: '提交成功',
-      tableStatus
+      tableStatus,
+      samplesLink
     });
 
   } catch (error: any) {

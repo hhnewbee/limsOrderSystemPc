@@ -71,13 +71,32 @@ export default function UserManagementPage() {
         }
     };
 
+    const deleteUser = async (user: any) => {
+        try {
+            await axios.delete('/api/admin/users', { data: { id: user.id } });
+            message.success('删除成功');
+            fetchUsers();
+        } catch (error: any) {
+            message.error('删除失败: ' + (error.response?.data?.error || error.message));
+        }
+    };
+
     const columns = [
         { title: '手机号', dataIndex: 'phone', key: 'phone' },
         {
             title: '角色',
             dataIndex: 'role',
             key: 'role',
-            render: (role: string) => role === 'admin' ? <Tag color="gold">管理员</Tag> : <Tag>客户</Tag>
+            render: (role: string) => {
+                const roleMap: Record<string, { label: string; color: string }> = {
+                    admin: { label: '管理员', color: 'gold' },
+                    sales: { label: '销售', color: 'blue' },
+                    lab: { label: '实验人员', color: 'purple' },
+                    customer: { label: '客户', color: 'default' }
+                };
+                const r = roleMap[role] || roleMap.customer;
+                return <Tag color={r.color}>{r.label}</Tag>;
+            }
         },
         { title: 'Email (ID)', dataIndex: 'email', key: 'email', render: (text: string) => <span style={{ color: '#999', fontSize: 12 }}>{text}</span> },
         { title: '注册时间', dataIndex: 'created_at', key: 'created_at', render: (d: string) => new Date(d).toLocaleString() },
@@ -95,6 +114,9 @@ export default function UserManagementPage() {
                     <Button size="small" onClick={() => { setSelectedUser(record); setIsResetOpen(true); }}>重置密码</Button>
                     <Popconfirm title={record.is_banned ? "启用账号?" : "禁用账号?"} onConfirm={() => toggleBan(record)}>
                         <Button size="small" danger={!record.is_banned}>{record.is_banned ? '启用' : '禁用'}</Button>
+                    </Popconfirm>
+                    <Popconfirm title="确定删除该用户？此操作不可恢复！" onConfirm={() => deleteUser(record)} okText="删除" okButtonProps={{ danger: true }}>
+                        <Button size="small" danger>删除</Button>
                     </Popconfirm>
                 </Space>
             )
@@ -122,6 +144,9 @@ export default function UserManagementPage() {
             {/* Create User Modal */}
             <Modal title="新建账号" open={isCreateOpen} onCancel={() => setIsCreateOpen(false)} onOk={() => form.submit()}>
                 <Form form={form} onFinish={handleCreate} layout="vertical" initialValues={{ role: 'customer' }}>
+                    <Form.Item name="name" label="姓名" rules={[{ required: true, message: '请输入姓名' }]}>
+                        <Input placeholder="请输入用户姓名" />
+                    </Form.Item>
                     <Form.Item name="phone" label="手机号" rules={[{ required: true }, { pattern: /^1\d{10}$/, message: '请输入11位手机号' }]}>
                         <Input />
                     </Form.Item>
@@ -131,6 +156,8 @@ export default function UserManagementPage() {
                     <Form.Item name="role" label="账号类型" rules={[{ required: true }]}>
                         <Radio.Group>
                             <Radio value="customer">普通客户</Radio>
+                            <Radio value="sales">销售</Radio>
+                            <Radio value="lab">实验人员</Radio>
                             <Radio value="admin">管理员</Radio>
                         </Radio.Group>
                     </Form.Item>

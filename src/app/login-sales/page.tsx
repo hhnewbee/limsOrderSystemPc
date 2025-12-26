@@ -1,34 +1,33 @@
 'use client';
 
 import React, { useState, Suspense } from 'react';
-import { Form, Input, Button, Card, message, Typography, Spin, Alert } from 'antd';
-import { MobileOutlined, LockOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Card, message, Typography, Spin, Alert, Result } from 'antd';
+import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
-import Link from 'next/link';
 
 const { Title, Text } = Typography;
 
-function LoginContent() {
+function SalesLoginContent() {
     const [loading, setLoading] = useState(false);
     const [form] = Form.useForm();
     const router = useRouter();
     const searchParams = useSearchParams();
 
-    // Get params from URL (from order auth flow)
+    // Get params from URL
     const defaultPhone = searchParams.get('phone') || '';
-    const customerName = searchParams.get('customerName') || '';
+    const salesmanName = searchParams.get('salesmanName') || '';
     const orderUuid = searchParams.get('orderUuid') || '';
     const returnUrl = searchParams.get('returnUrl') || '/';
-    const phoneReadOnly = searchParams.get('phoneReadOnly') === 'true';
+    const noAccount = searchParams.get('noAccount') === 'true';
 
-    // Display name: prefer customer name, fallback to phone
-    const displayAccount = customerName || defaultPhone;
+    // Display name: prefer salesman name, fallback to phone
+    const displayAccount = salesmanName || defaultPhone;
 
     const onFinish = async (values: any) => {
         setLoading(true);
         try {
-            // Create virtual email from phone (always use phone for auth)
+            // Create virtual email from phone
             const phone = values.phone || defaultPhone;
             const email = `${phone}@client.lims`;
 
@@ -44,11 +43,13 @@ function LoginContent() {
                     message.error('登录失败: ' + error.message);
                 }
             } else {
-                message.success('登录成功');
-                // Redirect to order page or return URL
-                if (orderUuid) {
-                    router.replace(`/${orderUuid}`);
+                // Verify user has sales role
+                const role = data.user?.user_metadata?.role;
+                if (role !== 'sales' && role !== 'admin') {
+                    message.error('该账号不是销售账号');
+                    await supabase.auth.signOut();
                 } else {
+                    message.success('登录成功');
                     router.replace(returnUrl);
                 }
             }
@@ -59,6 +60,34 @@ function LoginContent() {
         }
     };
 
+    // Show no account message
+    if (noAccount) {
+        return (
+            <div style={{
+                display: 'flex', justifyContent: 'center', alignItems: 'center',
+                minHeight: '100vh', background: '#f0f2f5'
+            }}>
+                <Card style={{ width: 450, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
+                    <Result
+                        status="warning"
+                        title="销售账号未开通"
+                        subTitle={
+                            <div>
+                                <p>业务员：<strong>{displayAccount}</strong></p>
+                                <p>您的销售账号尚未在系统中开通，请联系管理员添加账号。</p>
+                            </div>
+                        }
+                        extra={[
+                            <Button key="back" onClick={() => window.history.back()}>
+                                返回
+                            </Button>
+                        ]}
+                    />
+                </Card>
+            </div>
+        );
+    }
+
     return (
         <div style={{
             display: 'flex', justifyContent: 'center', alignItems: 'center',
@@ -66,14 +95,14 @@ function LoginContent() {
         }}>
             <Card style={{ width: 400, boxShadow: '0 4px 12px rgba(0,0,0,0.1)' }}>
                 <div style={{ textAlign: 'center', marginBottom: 24 }}>
-                    <Title level={3}>LIMS 客户登录</Title>
+                    <Title level={3}>LIMS 销售登录</Title>
                     <Text type="secondary">请输入密码登录</Text>
                 </div>
 
                 {orderUuid && (
                     <Alert
-                        message="请登录以查看订单"
-                        description="您的账户已关联此订单，请登录后继续"
+                        message="销售订单管理"
+                        description="请登录您的销售账号以查看和管理订单"
                         type="info"
                         showIcon
                         style={{ marginBottom: 16 }}
@@ -82,16 +111,16 @@ function LoginContent() {
 
                 <Form
                     form={form}
-                    name="login"
+                    name="sales-login"
                     onFinish={onFinish}
                     size="large"
                     initialValues={{ phone: defaultPhone }}
                 >
-                    {/* Display customer name/phone as readonly */}
-                    {phoneReadOnly && displayAccount && (
+                    {/* Display salesman name as readonly */}
+                    {displayAccount && (
                         <Form.Item>
                             <Input
-                                prefix={<MobileOutlined />}
+                                prefix={<UserOutlined />}
                                 value={displayAccount}
                                 disabled
                                 style={{ backgroundColor: '#f5f5f5' }}
@@ -99,20 +128,9 @@ function LoginContent() {
                         </Form.Item>
                     )}
 
-                    {/* Phone input (hidden when readonly, visible for manual login) */}
-                    <Form.Item
-                        name="phone"
-                        rules={!phoneReadOnly ? [
-                            { required: true, message: '请输入手机号!' },
-                            { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' }
-                        ] : []}
-                        hidden={phoneReadOnly}
-                    >
-                        <Input
-                            prefix={<MobileOutlined />}
-                            placeholder="手机号"
-                            maxLength={11}
-                        />
+                    {/* Phone input hidden */}
+                    <Form.Item name="phone" hidden>
+                        <Input />
                     </Form.Item>
 
                     <Form.Item
@@ -129,10 +147,7 @@ function LoginContent() {
                     </Form.Item>
 
                     <div style={{ textAlign: 'center' }}>
-                        <Text type="secondary">还没有账号？</Text>
-                        <Link href={`/register?phone=${defaultPhone}&returnUrl=${encodeURIComponent(returnUrl)}`}>
-                            立即注册
-                        </Link>
+                        <Text type="secondary">销售账号由管理员创建，如有问题请联系管理员</Text>
                     </div>
                 </Form>
             </Card>
@@ -140,11 +155,10 @@ function LoginContent() {
     );
 }
 
-export default function LoginPage() {
+export default function SalesLoginPage() {
     return (
         <Suspense fallback={<div style={{ textAlign: 'center', marginTop: 100 }}><Spin size="large" /></div>}>
-            <LoginContent />
+            <SalesLoginContent />
         </Suspense>
     );
 }
-

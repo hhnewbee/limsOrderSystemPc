@@ -25,7 +25,10 @@
       font-size: 14px;
       color: #434343;
       line-height: 1.6;
-      &:last-child { margin-bottom: 0; }
+
+      &:last-child {
+        margin-bottom: 0;
+      }
     }
   }
 
@@ -75,7 +78,10 @@
         display: flex;
         align-items: center;
         border-right: 1px solid #f0f0f0;
-        &:last-child { border-right: none; }
+
+        &:last-child {
+          border-right: none;
+        }
       }
     }
 
@@ -102,7 +108,9 @@
         height: 100%;
         box-sizing: border-box;
 
-        &:last-child { border-right: none; }
+        &:last-child {
+          border-right: none;
+        }
 
         // 覆盖 Antd 控件样式
         :global(.ant-input),
@@ -128,13 +136,45 @@
     background-color: #fff1f0 !important;
     border: 1px solid #ffccc7 !important;
     color: #cf1322 !important;
-    
+
     // Ensure the text aligns with standard cells if needed
     // But AG Grid usually handles reasonable defaults
+  }
+
+  // Inline error text below cell value
+  .cellWithError {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    height: 100%;
+    line-height: 1.2;
+
+    .cellValue {
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .cellErrorText {
+      color: #ff4d4f;
+      font-size: 11px;
+      line-height: 1;
+      margin-top: 2px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
   }
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; transform: translateY(-3px); }
-  to { opacity: 1; transform: translateY(0); }
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }

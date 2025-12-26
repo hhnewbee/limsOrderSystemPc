@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
 // 🟢 Create User
 export async function POST(request: NextRequest) {
     try {
-        const { phone, password, role = 'customer' } = await request.json(); // 🟢 Accept Role
+        const { phone, password, role = 'customer', name = '' } = await request.json(); // 🟢 Accept Role and Name
 
         if (!phone || !password) {
             return NextResponse.json({ error: 'Missing phone or password' }, { status: 400 });
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
             email: email,
             password: password,
             email_confirm: true, // Auto confirm
-            user_metadata: { role } // 🟢 Store Role in Metadata
+            user_metadata: { role, phone, name } // 🟢 Store Role, Phone and Name in Metadata
         });
 
         if (error) throw error;
@@ -69,6 +69,35 @@ export async function PUT(request: NextRequest) {
         }
 
         const { data, error } = await supabaseAdmin.auth.admin.updateUserById(id, updates);
+
+        if (error) throw error;
+
+        return NextResponse.json({ success: true });
+    } catch (error: any) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
+
+// 🟢 Delete User
+export async function DELETE(request: NextRequest) {
+    try {
+        const { id } = await request.json();
+
+        if (!id) return NextResponse.json({ error: 'Missing ID' }, { status: 400 });
+
+        // First, unlink any orders associated with this user
+        const { error: unlinkError } = await supabaseAdmin
+            .from('orders')
+            .update({ user_id: null })
+            .eq('user_id', id);
+
+        if (unlinkError) {
+            console.warn('[DELETE User] Error unlinking orders:', unlinkError);
+            // Continue anyway
+        }
+
+        // Then delete the user
+        const { error } = await supabaseAdmin.auth.admin.deleteUser(id);
 
         if (error) throw error;
 

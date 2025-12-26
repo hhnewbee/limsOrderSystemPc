@@ -33,12 +33,17 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
   }
 
   // Check User Auth
+  let userRole: string | null = null;
+  let userPhone: string | null = null;
+
   if (authHeader) {
     const token = authHeader.replace('Bearer ', '');
     const { data: { user }, error } = await supabase.auth.getUser(token);
     if (user && !error) {
       userId = user.id;
-      console.log(`[API] Customer Access. User: ${userId}`);
+      userRole = user.user_metadata?.role || 'customer';
+      userPhone = user.email?.replace('@client.lims', '') || null;
+      console.log(`[API] User Access. User: ${userId}, Role: ${userRole}`);
     }
   }
 
@@ -69,17 +74,48 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     // --- Order Security Check ---
     if (order) {
       if (operatorId) {
-        // Sales allow
+        // Sales token - allow access
       } else if (userId) {
-        if (order.user_id) {
-          if (order.user_id !== userId) {
-            return NextResponse.json({ error: 'Forbidden: Order belongs to another user' }, { status: 403 });
+        // Check user role for access
+        const isAdmin = userRole === 'admin';
+        const isSales = userRole === 'sales';
+        const isLab = userRole === 'lab';
+        const isCustomer = userRole === 'customer' || !userRole;
+
+        if (isAdmin) {
+          // Admin can access all orders
+          console.log(`[API] Admin access granted`);
+        } else if (isLab) {
+          // Lab users should NOT access customer order pages
+          // They should use /lab/samples instead
+          console.log(`[API] Lab user ${userId} tried to access order page - denied`);
+          return NextResponse.json({ error: 'Forbidden: Lab users cannot access customer orders. Please use /lab/samples' }, { status: 403 });
+        } else if (isSales) {
+          // Sales can access orders where salesman_contact matches their phone
+          if (order.salesman_contact !== userPhone) {
+            return NextResponse.json({ error: 'Forbidden: Order belongs to another salesman' }, { status: 403 });
           }
-        } else {
-          // Claim
-          console.log(`[API] Claiming order ${uuid} for user ${userId}`);
-          await supabase.from('orders').update({ user_id: userId }).eq('uuid', uuid);
-          order.user_id = userId;
+          console.log(`[API] Sales access granted for order`);
+        } else if (isCustomer) {
+          // Customer can only access their own orders
+          if (order.user_id) {
+            // Order already has an owner - check if it's this user
+            if (order.user_id !== userId) {
+              return NextResponse.json({ error: 'Forbidden: Order belongs to another user' }, { status: 403 });
+            }
+          } else {
+            // Order has no owner yet - check if customer_phone matches
+            const orderPhone = order.customer_phone;
+            if (orderPhone && orderPhone !== userPhone) {
+              // Phone doesn't match - deny access
+              console.log(`[API] Phone mismatch: order=${orderPhone}, user=${userPhone}`);
+              return NextResponse.json({ error: 'Forbidden: Order belongs to another customer' }, { status: 403 });
+            }
+            // Phone matches or no phone on order - claim it
+            console.log(`[API] Claiming order ${uuid} for user ${userId}`);
+            await supabase.from('orders').update({ user_id: userId }).eq('uuid', uuid);
+            order.user_id = userId;
+          }
         }
       }
     }
@@ -107,9 +143,25 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         status: 'draft',
       });
 
-      // 🟢 Auto-Bind Logic
-      let autoBindUserId = userId || null;
+      // 🟢 Auto-Bind Logic - with phone validation
+      let autoBindUserId: string | null = null;
 
+      // If user is logged in as customer, verify phone matches before binding
+      if (userId && userRole !== 'admin') {
+        const orderPhone = parsedData.customerPhone?.trim();
+        if (orderPhone && orderPhone !== userPhone) {
+          console.log(`[API] DingTalk order phone mismatch: order=${orderPhone}, user=${userPhone}`);
+          return NextResponse.json({ error: 'Forbidden: Order belongs to another customer' }, { status: 403 });
+        }
+        // Phone matches or no phone on order - bind to this user
+        autoBindUserId = userId;
+        console.log(`[API] Binding DingTalk order ${uuid} to logged-in user ${userId}`);
+      } else if (userId && userRole === 'admin') {
+        // Admin can access any order
+        console.log(`[API] Admin accessing DingTalk order ${uuid}`);
+      }
+
+      // If no logged-in user, try to find existing user by phone
       if (!autoBindUserId && parsedData.customerPhone) {
         try {
           const phone = parsedData.customerPhone.trim();

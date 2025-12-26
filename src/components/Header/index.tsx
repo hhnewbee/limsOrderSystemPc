@@ -23,12 +23,13 @@ export default function Header({ status }: HeaderProps) {
     useEffect(() => {
         const getUser = async () => {
             const { data: { session } } = await supabase.auth.getSession();
-            if (session?.user?.email) {
-                let display = session.user.email;
-                if (display.endsWith('@client.lims')) {
-                    display = display.replace('@client.lims', '');
-                }
-                setUserTitle(display);
+            if (session?.user) {
+                // Prefer name from metadata, fallback to phone
+                const metadata = session.user.user_metadata;
+                const name = metadata?.name;
+                const phone = session.user.email?.replace('@client.lims', '');
+
+                setUserTitle(name || phone || '当前用户');
             }
         };
         getUser();

@@ -68,6 +68,11 @@ export function useOrderLogic(
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
 
+            // Debug log
+            console.log('[loadOrderData] Session:', session ? 'exists' : 'null');
+            console.log('[loadOrderData] Token:', token ? 'exists' : 'null');
+            console.log('[loadOrderData] User:', session?.user?.email);
+
             const response = await axios.get<OrderFormData>(`/api/order/${uuid}`, {
                 headers: {
                     Authorization: token ? `Bearer ${token}` : undefined

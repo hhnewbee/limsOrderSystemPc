@@ -161,4 +161,5 @@ export interface YidaRawFormData {
     ProjectType?: string;
     TableStatus?: string;
     Remarks?: string;
+    SamplesLink?: string; // 样本数据查看链接
 }

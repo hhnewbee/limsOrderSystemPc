@@ -115,7 +115,7 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
             if (editingCells.length > 0) return;
 
             api.refreshCells({ force: true });
-        }, 0);
+        }, 100);
 
         return () => clearTimeout(timeoutId);
     }, [errors]);
@@ -197,10 +197,28 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
             return errors?.[rowIndex]?.[colId];
         };
 
+        // Custom cell renderer to show error message below value
+        const CellWithError = (params: any) => {
+            const rowIndex = params.node.rowIndex;
+            const colId = params.colDef.field;
+            const errorMsg = errorsRef.current?.[rowIndex]?.[colId];
+            const value = params.value;
+
+            if (errorMsg) {
+                return (
+                    <div className={styles.cellWithError}>
+                        <span className={styles.cellValue}>{value ?? ''}</span>
+                        <span className={styles.cellErrorText}>{errorMsg}</span>
+                    </div>
+                );
+            }
+            return value ?? '';
+        };
+
         const commonColProps: Partial<ColDef> = {
             editable: !disabled,
             cellClass: getCellClass,
-            tooltipValueGetter: getErrorMessage
+            cellRenderer: CellWithError
         };
 
         const cols: ColDef[] = [
@@ -424,6 +442,76 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
         if (onBlur) onBlur('sampleList');
     }, [onBlur]);
 
+    // Handle Enter key: smart navigation
+    // 1. First check if current row has empty editable cells after current column
+    // 2. If yes, jump to next empty cell in same row
+    // 3. If no, jump to first editable cell in next row
+    const onCellKeyDown = useCallback((event: any) => {
+        const keyboardEvent = event.event as KeyboardEvent;
+        const key = keyboardEvent.key;
+
+        if (key === 'Enter' && !keyboardEvent.shiftKey) {
+            const api = gridRef.current?.api;
+            if (!api) return;
+
+            const currentCell = api.getFocusedCell();
+            if (!currentCell) return;
+
+            const currentRowIndex = currentCell.rowIndex;
+            const currentColumnId = currentCell.column.getColId();
+
+            // Get editable columns from columnDefs (use field as colId)
+            const editableColumnFields = columnDefs
+                .filter((col: any) => col.editable !== false && col.field)
+                .map((col: any) => col.field as string);
+
+            // Find current column index
+            const currentColIndex = editableColumnFields.indexOf(currentColumnId);
+
+            // Get current row data
+            const rowNode = api.getDisplayedRowAtIndex(currentRowIndex);
+            const rowData = rowNode?.data;
+
+            if (rowData && currentColIndex >= 0) {
+                // Check for empty cells after current column in current row
+                for (let i = currentColIndex + 1; i < editableColumnFields.length; i++) {
+                    const field = editableColumnFields[i];
+                    const value = rowData[field];
+
+                    // If cell is empty, jump to it
+                    if (value === undefined || value === null || value === '') {
+                        keyboardEvent.preventDefault();
+                        setTimeout(() => {
+                            api.setFocusedCell(currentRowIndex, field);
+                            api.startEditingCell({
+                                rowIndex: currentRowIndex,
+                                colKey: field
+                            });
+                        }, 150);
+                        return;
+                    }
+                }
+            }
+
+            // All cells in current row are filled, move to next row
+            const nextRowIndex = currentRowIndex + 1;
+            if (nextRowIndex >= data.length) return; // No next row
+
+            // Jump to first editable column
+            const firstField = editableColumnFields[0];
+            if (!firstField) return;
+
+            keyboardEvent.preventDefault();
+            setTimeout(() => {
+                api.setFocusedCell(nextRowIndex, firstField);
+                api.startEditingCell({
+                    rowIndex: nextRowIndex,
+                    colKey: firstField
+                });
+            }, 150);
+        }
+    }, [data.length, columnDefs]);
+
     return (
         <div className={styles.sampleTableContainer}>
             <h3>样本清单</h3>
@@ -482,18 +570,17 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
                 <AgGridReact
                     theme="legacy"
                     ref={gridRef}
-                    tooltipShowDelay={0}
                     rowData={data}
                     columnDefs={columnDefs}
                     defaultColDef={defaultColDef}
+                    rowHeight={48}
                     rowSelection="multiple"
                     suppressRowClickSelection={true}
                     onCellValueChanged={onCellValueChanged}
                     onCellEditingStarted={onCellEditingStarted}
                     onCellEditingStopped={onCellEditingStopped}
+                    onCellKeyDown={onCellKeyDown}
                     stopEditingWhenCellsLoseFocus={true}
-                    enterNavigatesVerticallyAfterEdit={true}
-                    enterNavigatesVertically={true}
                     singleClickEdit={true}
                     suppressScrollOnNewData={true}
                 />
