@@ -1,5 +1,16 @@
 /* src/app/[uuid]/page.module.scss */
 
+/* Page wrapper for push-style sidebar */
+.pageWrapper {
+  transition: padding-right 0.3s ease;
+  padding-right: 0;
+}
+
+.pageWrapper.sidebarOpen {
+  padding-right: 320px;
+  /* Sidebar width */
+}
+
 .layoutGrid {
   display: flex;
   gap: 24px;
@@ -14,27 +25,32 @@
 
 .sidebar {
   width: 300px;
-  flex-shrink: 0; /* 防止侧边栏被压缩 */
+  flex-shrink: 0;
+  /* 防止侧边栏被压缩 */
 
   @media (max-width: 1024px) {
-    width: 100%; /* 移动端占满宽度 */
+    width: 100%;
+    /* 移动端占满宽度 */
   }
 }
 
 .mainContent {
   flex: 1;
-  min-width: 0; /* 防止表格撑爆 flex 容器 */
+  min-width: 0;
+  /* 防止表格撑爆 flex 容器 */
 }
 
 .stickyWrapper {
   position: sticky;
-  top: 100px; /* Header高度(64px) + 间距 */
+  top: 100px;
+  /* Header高度(64px) + 间距 */
   display: flex;
   flex-direction: column;
   gap: 24px;
 
   @media (max-width: 1024px) {
-    position: static; /* 移动端取消吸顶 */
+    position: static;
+    /* 移动端取消吸顶 */
   }
 }
 
@@ -55,7 +71,8 @@
   .value {
     font-size: 14px;
     font-weight: bold;
-    font-family: monospace; /* 等宽字体显示单号更清楚 */
+    font-family: monospace;
+    /* 等宽字体显示单号更清楚 */
     color: #333;
   }
 }

@@ -126,8 +126,8 @@ export function useOrderLogic(
         const dataToValidate = latestOrderDataRef.current || orderData;
         if (!dataToValidate) return;
 
-        // 运行全量校验（纯函数，很快）
-        const currentErrors = validateOrderForm(dataToValidate);
+        // 运行校验 - 编辑时只校验格式，不校验必填
+        const currentErrors = validateOrderForm(dataToValidate, { validateRequiredFields: false });
         const fieldError = currentErrors[field];
 
         setErrors(prev => {
@@ -166,7 +166,8 @@ export function useOrderLogic(
     const handleSubmit = async () => {
         if (!orderData) return;
 
-        const newErrors = validateOrderForm(orderData);
+        // 提交时进行全量校验（包括必填项）
+        const newErrors = validateOrderForm(orderData, { validateRequiredFields: true });
 
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);

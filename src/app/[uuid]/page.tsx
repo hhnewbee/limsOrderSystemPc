@@ -15,6 +15,7 @@ import SampleAnalysisModule from '@/components/SampleAnalysisModule';
 import SubmitArea from '@/components/SubmitArea/SubmitArea';
 import Header from "@/components/Header";
 import OrderStatusSteps from "@/components/OrderStatusSteps";
+import ProjectListSidebar from '@/components/ProjectListSidebar';
 
 // 引入 Hook
 import { useOrderLogic } from '@/hooks/useOrderLogic';
@@ -22,15 +23,18 @@ import { ORDER_STATUS } from '@/constants/orderStatus';
 
 import AuthGuard from '@/components/AuthGuard';
 import { useSearchParams } from 'next/navigation';
+import { ProjectListProvider, useProjectList } from '@/contexts/ProjectListContext';
 
-function OrderContent() {
+function OrderContentInner() {
     const { message, modal } = App.useApp();
     const params = useParams();
     const searchParams = useSearchParams();
     const salesToken = searchParams.get('s_token');
+    const { isOpen, toggleOpen, selectedUuid } = useProjectList();
 
-    // 兼容处理：确保 uuid 是 string 类型
-    const uuid = Array.isArray(params.uuid) ? params.uuid[0] : params.uuid;
+    // 使用 Context 中的 selectedUuid（优先），或 URL 参数
+    const urlUuid = Array.isArray(params.uuid) ? params.uuid[0] : params.uuid;
+    const uuid = selectedUuid || urlUuid;
 
     // 使用 Hook，传入 salesToken
     const {
@@ -48,28 +52,26 @@ function OrderContent() {
         handleSubmit
     } = useOrderLogic(uuid!, message, modal, salesToken); // 🟢 Pass Token
 
-    if (loading) {
-        return (
-            <div className="page-container" style={{ textAlign: 'center', paddingTop: 100 }}>
-                <Spin size="large" tip="加载中..."><div style={{ padding: 50 }} /></Spin>
-            </div>
-        );
-    }
+    // Content area - shows loading, error, or actual content
+    const renderMainContent = () => {
+        if (loading) {
+            return (
+                <div style={{ textAlign: 'center', paddingTop: 100 }}>
+                    <Spin size="large" tip="加载中..."><div style={{ padding: 50 }} /></Spin>
+                </div>
+            );
+        }
 
-    if (!orderData) {
-        return (
-            <div className="page-container">
+        if (!orderData) {
+            return (
                 <div className="module-card">
                     <h2 style={{ textAlign: 'center', color: '#ff4d4f' }}>订单不存在</h2>
                 </div>
-            </div>
-        );
-    }
+            );
+        }
 
-    return (
-        <>
-            <Header status={pageStatus} />
-            <div className="page-container">
+        return (
+            <>
                 <div className={styles.layoutGrid}>
                     <main className={styles.mainContent}>
                         <CustomerInfoModule data={orderData} />
@@ -93,7 +95,7 @@ function OrderContent() {
                             onBlur={handleBlur}
                             disabled={!isEditable}
                             errors={errors}
-                            message={message} // 🟢 Pass message
+                            message={message}
                         />
                     </main>
 
@@ -129,8 +131,31 @@ function OrderContent() {
                         hasUnsavedChanges={hasUnsavedChanges}
                     />
                 )}
+            </>
+        );
+    };
+
+    return (
+        <>
+            <Header status={pageStatus} onToggleProjectList={toggleOpen} />
+            <div className={`${styles.pageWrapper} ${isOpen ? styles.sidebarOpen : ''}`}>
+                <div className="page-container">
+                    {renderMainContent()}
+                </div>
+                <ProjectListSidebar />
             </div>
         </>
+    );
+}
+
+function OrderContent() {
+    const params = useParams();
+    const urlUuid = Array.isArray(params.uuid) ? params.uuid[0] : params.uuid;
+
+    return (
+        <ProjectListProvider initialUuid={urlUuid}>
+            <OrderContentInner />
+        </ProjectListProvider>
     );
 }
 

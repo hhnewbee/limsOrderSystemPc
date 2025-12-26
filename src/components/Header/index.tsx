@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { UserOutlined, BellOutlined, LogoutOutlined, DownOutlined } from '@ant-design/icons';
+import { UserOutlined, BellOutlined, LogoutOutlined, DownOutlined, FolderOutlined } from '@ant-design/icons';
 import { Avatar, Badge, Tag, Dropdown, MenuProps } from 'antd';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -13,10 +13,11 @@ interface PageStatus {
 
 interface HeaderProps {
     status?: PageStatus | null;
+    onToggleProjectList?: () => void;
 }
 
 // 接收 status 参数
-export default function Header({ status }: HeaderProps) {
+export default function Header({ status, onToggleProjectList }: HeaderProps) {
     const [userTitle, setUserTitle] = useState('当前客户');
     const router = useRouter();
 
@@ -41,6 +42,15 @@ export default function Header({ status }: HeaderProps) {
     };
 
     const items: MenuProps['items'] = [
+        {
+            key: 'projects',
+            label: '项目列表',
+            icon: <FolderOutlined />,
+            onClick: () => onToggleProjectList?.()
+        },
+        {
+            type: 'divider'
+        },
         {
             key: 'logout',
             label: '退出登录',
@@ -94,3 +104,4 @@ export default function Header({ status }: HeaderProps) {
         </header>
     );
 }
+

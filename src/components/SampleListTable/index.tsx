@@ -68,6 +68,21 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
     const [isBatchAddOpen, setIsBatchAddOpen] = useState(false);
     const [importing, setImporting] = useState(false);
 
+    // Track if we've already initialized rows to prevent repeated initialization
+    const initializedRef = useRef(false);
+
+    // Auto-initialize with 10 empty rows when data is empty and not disabled
+    useEffect(() => {
+        if (!disabled && data.length === 0 && !initializedRef.current) {
+            initializedRef.current = true;
+            const emptyRows = Array.from({ length: 10 }, () => ({
+                sampleName: '', analysisName: '', groupName: '',
+                detectionOrStorage: '检测', sampleTubeCount: 1, experimentDescription: ''
+            }));
+            onChange(emptyRows);
+        }
+    }, [data.length, disabled, onChange]);
+
     // --- Error Navigation Logic ---
     const errorIndices = useMemo(() => {
         if (!errors) return [];
@@ -329,27 +344,28 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
         onChange(newData);
     }, [data, onChange]);
 
-    // Add Row - with auto-scroll and auto-focus
+    // Add Row - adds 10 empty rows at a time
+    const createEmptyRow = (): SampleItem => ({
+        sampleName: '', analysisName: '', groupName: '',
+        detectionOrStorage: '检测', sampleTubeCount: 1, experimentDescription: ''
+    });
+
     const handleAddRow = useCallback(() => {
-        const newRow: SampleItem = {
-            sampleName: '', analysisName: '', groupName: '',
-            detectionOrStorage: '检测', sampleTubeCount: 1, experimentDescription: ''
-        };
-        const newData = [...data, newRow];
+        // Add 10 empty rows
+        const newRows = Array.from({ length: 10 }, () => createEmptyRow());
+        const newData = [...data, ...newRows];
         onChange(newData);
 
-        // After data updates, scroll to the new row and start editing
+        // After data updates, scroll to the first new row and start editing
         setTimeout(() => {
             const api = gridRef.current?.api;
             if (!api) return;
 
-            const newRowIndex = newData.length - 1;
-            // Scroll to the new row
-            api.ensureIndexVisible(newRowIndex, 'bottom');
-            // Start editing the first editable cell (sampleName)
-            api.setFocusedCell(newRowIndex, 'sampleName');
+            const firstNewRowIndex = data.length; // Index of first new row
+            api.ensureIndexVisible(firstNewRowIndex, 'middle');
+            api.setFocusedCell(firstNewRowIndex, 'sampleName');
             api.startEditingCell({
-                rowIndex: newRowIndex,
+                rowIndex: firstNewRowIndex,
                 colKey: 'sampleName'
             });
         }, 100);
@@ -446,6 +462,12 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
     // 1. First check if current row has empty editable cells after current column
     // 2. If yes, jump to next empty cell in same row
     // 3. If no, jump to first editable cell in next row
+    // Columns to skip during Enter navigation (typically unused columns like remarks)
+    const skipColumns = useMemo(() => ['experimentDescription'], []);
+
+    // Track error cell state: first Enter shows error, second Enter enters edit mode
+    const errorCellRef = useRef<{ row: number; col: string } | null>(null);
+
     const onCellKeyDown = useCallback((event: any) => {
         const keyboardEvent = event.event as KeyboardEvent;
         const key = keyboardEvent.key;
@@ -460,26 +482,83 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
             const currentRowIndex = currentCell.rowIndex;
             const currentColumnId = currentCell.column.getColId();
 
-            // Get editable columns from columnDefs (use field as colId)
+            // Get current row data (with the latest value from editing)
+            const rowNode = api.getDisplayedRowAtIndex(currentRowIndex);
+            const rowData = rowNode?.data;
+            const currentValue = rowData?.[currentColumnId] || '';
+
+            // Inline validation for current cell - check for format errors
+            let hasFormatError = false;
+
+            if (currentColumnId === 'sampleName' && currentValue) {
+                // Check for Chinese characters or special characters
+                if (/[\u4e00-\u9fa5]/.test(currentValue)) {
+                    hasFormatError = true;
+                } else if (/[￥$&@%]/.test(currentValue)) {
+                    hasFormatError = true;
+                } else if (currentValue.length > 10) {
+                    hasFormatError = true;
+                }
+            }
+
+            if ((currentColumnId === 'analysisName' || currentColumnId === 'groupName') && currentValue) {
+                // Check format: must start with letter, only alphanumeric and underscore
+                if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(currentValue)) {
+                    hasFormatError = true;
+                } else if (currentValue.length > 8) {
+                    hasFormatError = true;
+                }
+            }
+
+            // Only use inline validation - stored errors may be stale
+            if (hasFormatError) {
+                keyboardEvent.preventDefault();
+
+                // Check if this is the same error cell as before
+                const isSameErrorCell = errorCellRef.current?.row === currentRowIndex &&
+                    errorCellRef.current?.col === currentColumnId;
+
+                if (isSameErrorCell) {
+                    // Second Enter - enter edit mode
+                    errorCellRef.current = null; // Reset
+                    setTimeout(() => {
+                        api.setFocusedCell(currentRowIndex, currentColumnId);
+                        api.startEditingCell({
+                            rowIndex: currentRowIndex,
+                            colKey: currentColumnId
+                        });
+                    }, 150);
+                } else {
+                    // First Enter - just focus, don't edit (shows error)
+                    errorCellRef.current = { row: currentRowIndex, col: currentColumnId };
+                    api.stopEditing();
+                    setTimeout(() => {
+                        api.setFocusedCell(currentRowIndex, currentColumnId);
+                    }, 50);
+                }
+                return;
+            }
+
+            // No error - reset error cell tracking
+            errorCellRef.current = null;
+
+            // Get editable columns, excluding skip columns (like remarks)
             const editableColumnFields = columnDefs
-                .filter((col: any) => col.editable !== false && col.field)
+                .filter((col: any) => col.editable !== false && col.field && !skipColumns.includes(col.field))
                 .map((col: any) => col.field as string);
 
             // Find current column index
             const currentColIndex = editableColumnFields.indexOf(currentColumnId);
 
-            // Get current row data
-            const rowNode = api.getDisplayedRowAtIndex(currentRowIndex);
-            const rowData = rowNode?.data;
-
             if (rowData && currentColIndex >= 0) {
-                // Check for empty cells after current column in current row
+                // Check for empty cells OR error cells after current column in current row
                 for (let i = currentColIndex + 1; i < editableColumnFields.length; i++) {
                     const field = editableColumnFields[i];
                     const value = rowData[field];
+                    const hasError = errorsRef.current?.[currentRowIndex]?.[field];
 
-                    // If cell is empty, jump to it
-                    if (value === undefined || value === null || value === '') {
+                    // Jump to cell if it's empty or has error
+                    if (value === undefined || value === null || value === '' || hasError) {
                         keyboardEvent.preventDefault();
                         setTimeout(() => {
                             api.setFocusedCell(currentRowIndex, field);
@@ -495,9 +574,30 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
 
             // All cells in current row are filled, move to next row
             const nextRowIndex = currentRowIndex + 1;
-            if (nextRowIndex >= data.length) return; // No next row
 
-            // Jump to first editable column
+            // If we're at the last row and it's completed, auto-add 10 more rows
+            if (nextRowIndex >= data.length) {
+                keyboardEvent.preventDefault();
+                // Add 10 new empty rows
+                const newRows = Array.from({ length: 10 }, () => ({
+                    sampleName: '', analysisName: '', groupName: '',
+                    detectionOrStorage: '检测', sampleTubeCount: 1, experimentDescription: ''
+                }));
+                onChange([...data, ...newRows]);
+
+                // Focus the first cell of the new row after data updates
+                setTimeout(() => {
+                    api.ensureIndexVisible(nextRowIndex, 'middle');
+                    api.setFocusedCell(nextRowIndex, editableColumnFields[0] || 'sampleName');
+                    api.startEditingCell({
+                        rowIndex: nextRowIndex,
+                        colKey: editableColumnFields[0] || 'sampleName'
+                    });
+                }, 150);
+                return;
+            }
+
+            // Jump to first editable column of next row
             const firstField = editableColumnFields[0];
             if (!firstField) return;
 
@@ -510,7 +610,7 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
                 });
             }, 150);
         }
-    }, [data.length, columnDefs]);
+    }, [data, columnDefs, onChange, skipColumns]);
 
     return (
         <div className={styles.sampleTableContainer}>
