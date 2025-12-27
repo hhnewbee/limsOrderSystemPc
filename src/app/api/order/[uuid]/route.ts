@@ -143,11 +143,23 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         status: 'draft',
       });
 
-      // 🟢 Auto-Bind Logic - with phone validation
+      // 🟢 Auto-Bind Logic - with role-based phone validation
       let autoBindUserId: string | null = null;
 
-      // If user is logged in as customer, verify phone matches before binding
-      if (userId && userRole !== 'admin') {
+      // Check access based on role
+      if (userId && userRole === 'admin') {
+        // Admin can access any order
+        console.log(`[API] Admin accessing DingTalk order ${uuid}`);
+      } else if (userId && userRole === 'sales') {
+        // Sales can access if salesmanContact matches their phone
+        const salesContact = parsedData.salesmanContact?.trim();
+        if (salesContact && salesContact !== userPhone) {
+          console.log(`[API] Sales order mismatch: salesmanContact=${salesContact}, user=${userPhone}`);
+          return NextResponse.json({ error: 'Forbidden: Order belongs to another salesman' }, { status: 403 });
+        }
+        console.log(`[API] Sales ${userPhone} accessing DingTalk order ${uuid}`);
+      } else if (userId) {
+        // Customer: verify customerPhone matches before binding
         const orderPhone = parsedData.customerPhone?.trim();
         if (orderPhone && orderPhone !== userPhone) {
           console.log(`[API] DingTalk order phone mismatch: order=${orderPhone}, user=${userPhone}`);
@@ -156,9 +168,6 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         // Phone matches or no phone on order - bind to this user
         autoBindUserId = userId;
         console.log(`[API] Binding DingTalk order ${uuid} to logged-in user ${userId}`);
-      } else if (userId && userRole === 'admin') {
-        // Admin can access any order
-        console.log(`[API] Admin accessing DingTalk order ${uuid}`);
       }
 
       // If no logged-in user, try to find existing user by phone

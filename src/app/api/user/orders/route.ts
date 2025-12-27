@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase';
 
 /**
  * API to get orders belonging to the current user
+ * - Customers: get orders by user_id
+ * - Sales: get orders where salesman_contact matches their phone
  */
 export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('Authorization');
@@ -19,8 +21,10 @@ export async function GET(request: NextRequest) {
     }
 
     try {
-        // Get orders belonging to this user
-        const { data: orders, error } = await supabase
+        const role = user.user_metadata?.role;
+        const userPhone = user.email?.replace('@client.lims', '');
+
+        let query = supabase
             .from('orders')
             .select(`
                 id,
@@ -35,9 +39,21 @@ export async function GET(request: NextRequest) {
                 created_at,
                 updated_at
             `)
-            .eq('user_id', user.id)
             .order('updated_at', { ascending: false })
             .limit(50);
+
+        // Apply different filters based on role
+        if (role === 'sales') {
+            // Sales users: get orders where salesman_contact matches their phone
+            query = query.eq('salesman_contact', userPhone);
+        } else if (role === 'admin') {
+            // Admin: get all orders (no filter, just limit)
+        } else {
+            // Customer: get orders by user_id
+            query = query.eq('user_id', user.id);
+        }
+
+        const { data: orders, error } = await query;
 
         if (error) {
             console.error('[User Orders API] Error:', error);
@@ -53,3 +69,4 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+

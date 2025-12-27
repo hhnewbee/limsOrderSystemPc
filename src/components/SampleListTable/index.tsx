@@ -397,12 +397,23 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
         setImporting(true);
         try {
             const importedData = await importFromExcel(file);
-            onChange([...data, ...importedData]);
+
+            // Filter out empty rows from existing data before appending
+            const existingNonEmptyRows = data.filter(row =>
+                row.sampleName?.trim() ||
+                row.analysisName?.trim() ||
+                row.groupName?.trim() ||
+                row.experimentDescription?.trim()
+            );
+
+            // Combine existing non-empty rows with imported data
+            onChange([...existingNonEmptyRows, ...importedData]);
             message.success(`成功导入 ${importedData.length} 条数据`);
             setTimeout(() => { if (onBlur) onBlur('sampleList'); }, 0);
-        } catch (err) {
+        } catch (err: any) {
             console.error(err);
-            message.error('导入失败');
+            // Show specific error message from validation
+            message.error(err?.message || '导入失败');
         } finally {
             setImporting(false);
         }

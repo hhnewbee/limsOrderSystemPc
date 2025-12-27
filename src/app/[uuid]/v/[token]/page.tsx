@@ -98,7 +98,7 @@ export default function TokenSamplesViewPage({ params }: { params: Promise<{ uui
                 const multiGroupExportData = data.multiGroupComparison.map((item: any, index: number) => ({
                     '序号': index + 1,
                     '差异分析比较组': (item.comparison_groups || []).join(', '),
-                    '比较方案': (item.comparison_groups || []).join(' VS ')
+                    '比较方案': (item.comparison_groups || []).join(' vs ')
                 }));
                 const multiGroupSheet = XLSX.utils.json_to_sheet(multiGroupExportData);
                 XLSX.utils.book_append_sheet(workbook, multiGroupSheet, '多组比较');
@@ -273,7 +273,7 @@ export default function TokenSamplesViewPage({ params }: { params: Promise<{ uui
                                     title: '比较方案 (自动生成)',
                                     dataIndex: 'comparison_groups',
                                     key: 'comparisonName',
-                                    render: (groups: string[]) => groups?.join(' VS ') || '-'
+                                    render: (groups: string[]) => groups?.join(' vs ') || '-'
                                 }
                             ]}
                             dataSource={data.multiGroupComparison.map((item, idx) => ({ ...item, _key: `multi-${idx}` }))}

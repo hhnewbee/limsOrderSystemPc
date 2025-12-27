@@ -15,21 +15,26 @@ import SampleAnalysisModule from '@/components/SampleAnalysisModule';
 import SubmitArea from '@/components/SubmitArea/SubmitArea';
 import Header from "@/components/Header";
 import OrderStatusSteps from "@/components/OrderStatusSteps";
+import ProjectListSidebar from '@/components/ProjectListSidebar';
 
 // 引入 Hook
 import { useOrderLogic } from '@/hooks/useOrderLogic';
 import { ORDER_STATUS } from '@/constants/orderStatus';
 
 import { supabase } from '@/lib/supabase';
+import { ProjectListProvider, useProjectList } from '@/contexts/ProjectListContext';
 
-function SalesOrderContent() {
+function SalesOrderContentInner() {
     const { message, modal } = App.useApp();
     const params = useParams();
     const router = useRouter();
     const [authChecking, setAuthChecking] = useState(true);
     const [authorized, setAuthorized] = useState(false);
+    const { isOpen, toggleOpen, selectedUuid } = useProjectList();
 
-    const uuid = Array.isArray(params.uuid) ? params.uuid[0] : params.uuid;
+    // Use selectedUuid from context, or fall back to URL params
+    const urlUuid = Array.isArray(params.uuid) ? params.uuid[0] : params.uuid;
+    const uuid = selectedUuid || urlUuid;
 
     // Check sales authentication
     useEffect(() => {
@@ -55,7 +60,7 @@ function SalesOrderContent() {
 
         // Verify this sales can access this order
         try {
-            const response = await fetch(`/api/order/${uuid}`, {
+            const response = await fetch(`/api/order/${urlUuid}`, {
                 headers: { 'Authorization': `Bearer ${session.access_token}` }
             });
 
@@ -84,14 +89,14 @@ function SalesOrderContent() {
 
     const redirectToSalesLogin = async () => {
         try {
-            const response = await fetch(`/api/order/${uuid}/check-auth-sales`);
+            const response = await fetch(`/api/order/${urlUuid}/check-auth-sales`);
             if (response.ok) {
                 const data = await response.json();
                 const params = new URLSearchParams({
                     phone: data.phone,
                     salesmanName: data.salesmanName || '',
-                    orderUuid: uuid!,
-                    returnUrl: `/${uuid}/sales`,
+                    orderUuid: urlUuid!,
+                    returnUrl: `/${urlUuid}/sales`,
                     noAccount: data.authType === 'no_account' ? 'true' : 'false'
                 });
                 router.replace(`/login-sales?${params.toString()}`);
@@ -119,28 +124,26 @@ function SalesOrderContent() {
         handleSubmit
     } = useOrderLogic(uuid!, message, modal, null);
 
-    if (authChecking || loading) {
-        return (
-            <div className="page-container" style={{ textAlign: 'center', paddingTop: 100 }}>
-                <Spin size="large" tip="验证权限中..."><div style={{ padding: 50 }} /></Spin>
-            </div>
-        );
-    }
+    // Content renderer
+    const renderMainContent = () => {
+        if (authChecking || loading) {
+            return (
+                <div style={{ textAlign: 'center', paddingTop: 100 }}>
+                    <Spin size="large" tip="验证权限中..."><div style={{ padding: 50 }} /></Spin>
+                </div>
+            );
+        }
 
-    if (!authorized || !orderData) {
-        return (
-            <div className="page-container">
+        if (!authorized || !orderData) {
+            return (
                 <div className="module-card">
                     <h2 style={{ textAlign: 'center', color: '#ff4d4f' }}>无法访问订单</h2>
                 </div>
-            </div>
-        );
-    }
+            );
+        }
 
-    return (
-        <>
-            <Header status={pageStatus} />
-            <div className="page-container">
+        return (
+            <>
                 <Alert
                     message="销售管理模式"
                     description="您正在以销售身份查看此订单，可以帮助客户编辑和提交订单。"
@@ -207,8 +210,31 @@ function SalesOrderContent() {
                         hasUnsavedChanges={hasUnsavedChanges}
                     />
                 )}
+            </>
+        );
+    };
+
+    return (
+        <>
+            <Header status={pageStatus} onToggleProjectList={toggleOpen} />
+            <div className={`${styles.pageWrapper} ${isOpen ? styles.sidebarOpen : ''}`}>
+                <div className="page-container">
+                    {renderMainContent()}
+                </div>
+                <ProjectListSidebar />
             </div>
         </>
+    );
+}
+
+function SalesOrderContent() {
+    const params = useParams();
+    const urlUuid = Array.isArray(params.uuid) ? params.uuid[0] : params.uuid;
+
+    return (
+        <ProjectListProvider initialUuid={urlUuid}>
+            <SalesOrderContentInner />
+        </ProjectListProvider>
     );
 }
 
@@ -219,3 +245,4 @@ export default function SalesOrderPage() {
         </Suspense>
     );
 }
+
