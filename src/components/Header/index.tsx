@@ -1,23 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { UserOutlined, BellOutlined, LogoutOutlined, DownOutlined, FolderOutlined } from '@ant-design/icons';
-import { Avatar, Badge, Tag, Dropdown, MenuProps } from 'antd';
+import { Avatar, Badge, Dropdown, MenuProps } from 'antd';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import styles from './Header.module.scss';
 
-interface PageStatus {
-    text: string;
-    color: string;
-    icon: React.ReactNode;
-}
-
 interface HeaderProps {
-    status?: PageStatus | null;
     onToggleProjectList?: () => void;
 }
 
-// 接收 status 参数
-export default function Header({ status, onToggleProjectList }: HeaderProps) {
+export default function Header({ onToggleProjectList }: HeaderProps) {
     const [userTitle, setUserTitle] = useState('当前客户');
     const router = useRouter();
 
@@ -72,19 +64,6 @@ export default function Header({ status, onToggleProjectList }: HeaderProps) {
 
             {/* 右侧：状态 + 用户信息 */}
             <div className={styles.rightSection}>
-                {/* 新增：状态显示区域 */}
-                {status && (
-                    <div className={styles.statusBadge}>
-                        <span className={styles.statusLabel}>当前状态:</span>
-                        {/* 这里直接使用 Ant Design 的 Tag 组件，或者自定义样式 */}
-                        <Tag color={status.color} style={{ margin: 0, fontSize: '14px', padding: '4px 10px' }}>
-                            {status.icon} {status.text}
-                        </Tag>
-                    </div>
-                )}
-
-                <div className={styles.divider}></div>
-
                 <Badge count={0} size="small" offset={[-2, 2]}>
                     <BellOutlined style={{ fontSize: '18px', color: '#666', cursor: 'pointer' }} />
                 </Badge>

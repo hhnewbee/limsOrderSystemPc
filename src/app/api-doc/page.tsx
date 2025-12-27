@@ -67,12 +67,22 @@ const PRESETS = [
         body: { TableStatus: '分析完成', AnalysisTime: Date.now() }
     },
     {
-        label: '场景 7: 全部交付完成',
+        label: '场景 7: 开票完成 (跳转待付款)',
+        value: '开票完成',
+        body: { TableStatus: '开票完成', InvoiceTime: Date.now() }
+    },
+    {
+        label: '场景 8: 付款完成 (跳转待交付)',
+        value: '付款完成',
+        body: { TableStatus: '付款完成', PaymentTime: Date.now() }
+    },
+    {
+        label: '场景 9: 全部交付完成',
         value: '交付完成',
         body: { TableStatus: '交付完成', DeliveryTime: Date.now() }
     },
     {
-        label: '场景 8: 审批不通过 (红框)',
+        label: '场景 10: 审批不通过 (红框)',
         value: '审批不通过',
         body: {
             TableStatus: '审批不通过',
@@ -215,8 +225,9 @@ export default function ApiDocPage() {
                                 <TextArea
                                     value={jsonBody}
                                     onChange={e => setJsonBody(e.target.value)}
-                                    rows={8}
-                                    style={{ marginTop: 8, fontFamily: 'monospace', color: '#1677ff', background: '#f9f9f9' }}
+                                    rows={6}
+                                    autoSize={{ minRows: 4, maxRows: 12 }}
+                                    style={{ marginTop: 8, fontFamily: 'monospace', fontSize: 13, color: '#1677ff', background: '#f9f9f9' }}
                                 />
                             </div>
 

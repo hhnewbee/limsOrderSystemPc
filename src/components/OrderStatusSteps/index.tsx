@@ -53,12 +53,12 @@ const OrderStatusSteps: React.FC<OrderStatusStepsProps> = ({ currentStatus, data
         },
         {
             key: 'test',
-            future: '待检测', current: '开始检测', past: '检测完成', // User: 待检测/开始检测/检测完成
+            future: '待检测', current: '检测中', past: '检测完成', // User: 待检测/检测中/检测完成
             icon: <ExperimentOutlined />, timeField: 'testTime'
         },
         {
             key: 'analysis',
-            future: '待分析', current: '开始分析', past: '分析完成', // User: 待分析/开始分析/分析完成
+            future: '待分析', current: '分析中', past: '分析完成', // User: 待分析/分析中/分析完成
             icon: <BarChartOutlined />, timeField: 'analysisTime'
         },
         {
@@ -68,7 +68,7 @@ const OrderStatusSteps: React.FC<OrderStatusStepsProps> = ({ currentStatus, data
         },
         {
             key: 'payment',
-            future: '待付款', current: '付款中', past: '付款完成', // User: 待付款/付款完成
+            future: '待付款', current: '待付款', past: '付款完成', // User: 待付款/待付款/付款完成
             icon: <PayCircleOutlined />, timeField: 'paymentTime'
         },
         {
@@ -153,7 +153,11 @@ const OrderStatusSteps: React.FC<OrderStatusStepsProps> = ({ currentStatus, data
             title = item.past;
         } else if (index === currentIndex) {
             // 当前状态
-            title = stepStatus === 'error' ? '需修改/不通过' : item.current;
+            if (stepStatus === 'finish') {
+                title = item.past;
+            } else {
+                title = stepStatus === 'error' ? '需修改' : item.current;
+            }
 
             // 🟢 动态微调标题
             if (['开始检测', '检测中'].includes(currentStatus) && item.key === 'test') {

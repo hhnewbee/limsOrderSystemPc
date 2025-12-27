@@ -110,12 +110,7 @@ function OrderContentInner() {
                             <ProjectInfoModule data={orderData} />
                             <div style={{ marginBottom: '16px' }}>
                                 <OrderStatusSteps
-                                    currentStatus={
-                                        (orderData.status === ORDER_STATUS.SUBMITTED &&
-                                            !([ORDER_STATUS.REJECTED, ORDER_STATUS.CUSTOMER_MODIFYING, ORDER_STATUS.REJECTED_AUDIT] as string[]).includes(orderData.tableStatus))
-                                            ? ORDER_STATUS.SUBMITTED
-                                            : (orderData.tableStatus || orderData.status || '')
-                                    }
+                                    currentStatus={orderData.tableStatus || orderData.status || ''}
                                     data={orderData}
                                 />
                             </div>
@@ -137,7 +132,7 @@ function OrderContentInner() {
 
     return (
         <>
-            <Header status={pageStatus} onToggleProjectList={toggleOpen} />
+            <Header onToggleProjectList={toggleOpen} />
             <div className={`${styles.pageWrapper} ${isOpen ? styles.sidebarOpen : ''}`}>
                 <div className="page-container">
                     {renderMainContent()}

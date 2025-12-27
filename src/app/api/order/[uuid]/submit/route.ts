@@ -81,12 +81,16 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
     if (order.form_instance_id) {
       try {
         // 需要确保你的 convertToYidaFormat 也支持 TS 类型的入参，或转为 any
-        const yidaData = convertToYidaFormat(data);
+        // 🟢 Include tableStatus in data so DingTalk gets updated status
+        const yidaData = convertToYidaFormat({
+          ...data,
+          tableStatus: tableStatus
+        });
 
         // Add SamplesLink to yidaData
         yidaData.SamplesLink = samplesLink;
 
-        console.log('[API] 准备提交到钉钉:', { formInstanceId: order.form_instance_id, samplesLink });
+        console.log('[API] 准备提交到钉钉:', { formInstanceId: order.form_instance_id, samplesLink, tableStatus });
 
         // 🟢 Pass the Sales Operator ID (if any)
         await updateFormData(order.form_instance_id, yidaData, operatorId);
