@@ -250,7 +250,7 @@ export function appToYida(data: Partial<OrderFormData>): YidaRawFormData {
         SaveMedia: data.preservationMedium,
         SamplePreprocessingMethod: data.samplePreprocessing,
         RemainingSampleProcessingMethod: data.remainingSampleHandling,
-        IsBioinformaticsAnalysis: data.needBioinformaticsAnalysis,
+        IsBioinformaticsAnalysis: data.needBioinformaticsAnalysis ? '是' : '否',
 
         ModeOfDelivery: data.shippingMethod,
         ExpressCompanyAndWaybillNumber: data.expressCompanyWaybill,

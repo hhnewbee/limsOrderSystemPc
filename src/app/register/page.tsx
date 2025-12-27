@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, Suspense } from 'react';
-import { Form, Input, Button, Card, message, Typography, Spin, Alert } from 'antd';
+import { Form, Input, Button, Card, message, Typography, Spin, Alert, Result } from 'antd';
 import { MobileOutlined, LockOutlined, UserOutlined } from '@ant-design/icons';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
@@ -20,7 +20,27 @@ function RegisterContent() {
     const customerName = searchParams.get('customerName') || '';
     const orderUuid = searchParams.get('orderUuid') || '';
     const returnUrl = searchParams.get('returnUrl') || '/';
-    const phoneReadOnly = searchParams.get('phoneReadOnly') === 'true';
+
+    // Strict Access Control: Must have phone or order info
+    if (!defaultPhone && !orderUuid) {
+        return (
+            <div style={{
+                display: 'flex', justifyContent: 'center', alignItems: 'center',
+                minHeight: '100vh', background: '#f0f2f5'
+            }}>
+                <Card style={{ width: 400, textAlign: 'center' }}>
+                    <Result
+                        status="403"
+                        title="访问被拒绝"
+                        subTitle="请通过订单链接访问此页面"
+                    />
+                </Card>
+            </div>
+        );
+    }
+
+    // Force read-only to prevent registration with arbitrary numbers
+    const phoneReadOnly = !!defaultPhone;
 
     // Display name: prefer customer name, fallback to phone
     const displayAccount = customerName || defaultPhone;

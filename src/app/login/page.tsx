@@ -9,6 +9,10 @@ import Link from 'next/link';
 
 const { Title, Text } = Typography;
 
+const { Result } = require('antd'); // Add Result to imports or assume it's imported
+
+// ... import Result at the top if not present, checking imports
+
 function LoginContent() {
     const [loading, setLoading] = useState(false);
     const [form] = Form.useForm();
@@ -20,10 +24,31 @@ function LoginContent() {
     const customerName = searchParams.get('customerName') || '';
     const orderUuid = searchParams.get('orderUuid') || '';
     const returnUrl = searchParams.get('returnUrl') || '/';
-    const phoneReadOnly = searchParams.get('phoneReadOnly') === 'true';
+
+    // Strict Access Control: Must have phone or order info
+    if (!defaultPhone && !orderUuid) {
+        return (
+            <div style={{
+                display: 'flex', justifyContent: 'center', alignItems: 'center',
+                minHeight: '100vh', background: '#f0f2f5'
+            }}>
+                <Card style={{ width: 400, textAlign: 'center' }}>
+                    <Result
+                        status="403"
+                        title="访问被拒绝"
+                        subTitle="请通过订单链接访问此页面"
+                    />
+                </Card>
+            </div>
+        );
+    }
+
+    // Force read-only if we have a phone number (prevent manual edits)
+    const phoneReadOnly = !!defaultPhone;
 
     // Display name: prefer customer name, fallback to phone
     const displayAccount = customerName || defaultPhone;
+
 
     const onFinish = async (values: any) => {
         setLoading(true);
