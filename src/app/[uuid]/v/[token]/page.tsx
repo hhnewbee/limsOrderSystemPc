@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, use } from 'react';
-import { Table, Card, Typography, Spin, Tag, Alert, Empty, Descriptions, Button, message } from 'antd';
+import { Table, Card, Typography, Spin, Tag, Alert, Empty, Descriptions, Button, message, Tabs } from 'antd';
 import { ExperimentOutlined, FileTextOutlined, BranchesOutlined, ClusterOutlined, DownloadOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 
@@ -35,6 +35,7 @@ export default function TokenSamplesViewPage({ params }: { params: Promise<{ uui
     const [exporting, setExporting] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [data, setData] = useState<OrderSamples | null>(null);
+    const [activeTab, setActiveTab] = useState('samples');
 
     useEffect(() => {
         fetchSamples();
@@ -172,6 +173,94 @@ export default function TokenSamplesViewPage({ params }: { params: Promise<{ uui
 
     const status = statusMap[data.status] || { label: data.status || '未知', color: 'default' };
 
+    // Build tab items
+    const tabItems = [
+        {
+            key: 'samples',
+            label: (
+                <span>
+                    <FileTextOutlined />
+                    样本清单
+                    <Tag style={{ marginLeft: 8 }}>{data.sampleList.length}</Tag>
+                </span>
+            ),
+            children: data.sampleList.length > 0 ? (
+                <Table
+                    columns={sampleColumns}
+                    dataSource={data.sampleList.map((item, idx) => ({ ...item, _key: `sample-${idx}` }))}
+                    rowKey="_key"
+                    pagination={false}
+                    size="small"
+                    scroll={{ x: 800 }}
+                />
+            ) : (
+                <Empty description="暂无样本数据" />
+            )
+        },
+        ...(data.needBioinformaticsAnalysis && data.pairwiseComparison?.length > 0 ? [{
+            key: 'pairwise',
+            label: (
+                <span>
+                    <BranchesOutlined />
+                    两两比较
+                    <Tag style={{ marginLeft: 8 }}>{data.pairwiseComparison.length}</Tag>
+                </span>
+            ),
+            children: (
+                <Table
+                    columns={[
+                        { title: '序号', key: 'index', width: 60, render: (_: any, __: any, index: number) => index + 1 },
+                        { title: '对照组 (Control)', dataIndex: 'control_group', key: 'controlGroup', width: 200 },
+                        { title: '实验组 (Case)', dataIndex: 'treatment_group', key: 'treatmentGroup', width: 200 },
+                        { title: '比较方案名称 (自动生成)', dataIndex: 'comparison_scheme', key: 'comparisonScheme', ellipsis: true }
+                    ]}
+                    dataSource={data.pairwiseComparison.map((item, idx) => ({ ...item, _key: `pair-${idx}` }))}
+                    rowKey="_key"
+                    pagination={false}
+                    size="small"
+                />
+            )
+        }] : []),
+        ...(data.needBioinformaticsAnalysis && data.multiGroupComparison?.length > 0 ? [{
+            key: 'multigroup',
+            label: (
+                <span>
+                    <ClusterOutlined />
+                    多组比较
+                    <Tag style={{ marginLeft: 8 }}>{data.multiGroupComparison.length}</Tag>
+                </span>
+            ),
+            children: (
+                <Table
+                    columns={[
+                        { title: '序号', key: 'index', width: 60, render: (_: any, __: any, index: number) => index + 1 },
+                        {
+                            title: '差异分析比较组 (多选)',
+                            dataIndex: 'comparison_groups',
+                            key: 'comparisonGroups',
+                            width: 300,
+                            render: (groups: string[]) => (
+                                <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                                    {groups?.map((g, i) => <Tag key={i}>{g}</Tag>) || '-'}
+                                </div>
+                            )
+                        },
+                        {
+                            title: '比较方案 (自动生成)',
+                            dataIndex: 'comparison_groups',
+                            key: 'comparisonName',
+                            render: (groups: string[]) => groups?.join(' vs ') || '-'
+                        }
+                    ]}
+                    dataSource={data.multiGroupComparison.map((item, idx) => ({ ...item, _key: `multi-${idx}` }))}
+                    rowKey="_key"
+                    pagination={false}
+                    size="small"
+                />
+            )
+        }] : [])
+    ];
+
     return (
         <div style={{ padding: 24, background: '#f0f2f5', minHeight: '100vh' }}>
             {/* Header */}
@@ -210,79 +299,15 @@ export default function TokenSamplesViewPage({ params }: { params: Promise<{ uui
                     </Descriptions>
                 </Card>
 
-                {/* Sample List */}
-                <Card
-                    title={<><FileTextOutlined /> 样本清单 ({data.sampleList.length} 条)</>}
-                    style={{ marginBottom: 16 }}
-                >
-                    {data.sampleList.length > 0 ? (
-                        <Table
-                            columns={sampleColumns}
-                            dataSource={data.sampleList.map((item, idx) => ({ ...item, _key: `sample-${idx}` }))}
-                            rowKey="_key"
-                            pagination={false}
-                            size="small"
-                            scroll={{ x: 800 }}
-                        />
-                    ) : (
-                        <Empty description="暂无样本数据" />
-                    )}
+                {/* Tabbed Content */}
+                <Card>
+                    <Tabs
+                        activeKey={activeTab}
+                        onChange={setActiveTab}
+                        items={tabItems}
+                        size="large"
+                    />
                 </Card>
-
-                {/* Pairwise Comparison */}
-                {data.needBioinformaticsAnalysis && data.pairwiseComparison?.length > 0 && (
-                    <Card
-                        title={<><BranchesOutlined /> 两两比较 ({data.pairwiseComparison.length} 组)</>}
-                        style={{ marginBottom: 16 }}
-                    >
-                        <Table
-                            columns={[
-                                { title: '序号', key: 'index', width: 60, render: (_, __, index) => index + 1 },
-                                { title: '对照组 (Control)', dataIndex: 'control_group', key: 'controlGroup', width: 200 },
-                                { title: '实验组 (Case)', dataIndex: 'treatment_group', key: 'treatmentGroup', width: 200 },
-                                { title: '比较方案名称 (自动生成)', dataIndex: 'comparison_scheme', key: 'comparisonScheme', ellipsis: true }
-                            ]}
-                            dataSource={data.pairwiseComparison.map((item, idx) => ({ ...item, _key: `pair-${idx}` }))}
-                            rowKey="_key"
-                            pagination={false}
-                            size="small"
-                        />
-                    </Card>
-                )}
-
-                {/* Multi-Group Comparison */}
-                {data.needBioinformaticsAnalysis && data.multiGroupComparison?.length > 0 && (
-                    <Card
-                        title={<><ClusterOutlined /> 多组比较 ({data.multiGroupComparison.length} 组)</>}
-                    >
-                        <Table
-                            columns={[
-                                { title: '序号', key: 'index', width: 60, render: (_, __, index) => index + 1 },
-                                {
-                                    title: '差异分析比较组 (多选)',
-                                    dataIndex: 'comparison_groups',
-                                    key: 'comparisonGroups',
-                                    width: 300,
-                                    render: (groups: string[]) => (
-                                        <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
-                                            {groups?.map((g, i) => <Tag key={i}>{g}</Tag>) || '-'}
-                                        </div>
-                                    )
-                                },
-                                {
-                                    title: '比较方案 (自动生成)',
-                                    dataIndex: 'comparison_groups',
-                                    key: 'comparisonName',
-                                    render: (groups: string[]) => groups?.join(' vs ') || '-'
-                                }
-                            ]}
-                            dataSource={data.multiGroupComparison.map((item, idx) => ({ ...item, _key: `multi-${idx}` }))}
-                            rowKey="_key"
-                            pagination={false}
-                            size="small"
-                        />
-                    </Card>
-                )}
 
                 {/* Footer */}
                 <div style={{ textAlign: 'center', marginTop: 24, color: '#999' }}>
@@ -292,3 +317,4 @@ export default function TokenSamplesViewPage({ params }: { params: Promise<{ uui
         </div>
     );
 }
+
