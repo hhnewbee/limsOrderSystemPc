@@ -32,11 +32,11 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
         // For order pages, we need to verify the user has access to this specific order
         if (uuid && uuid.length > 10) {
-            console.log('[AuthGuard] Order page detected:', uuid);
+
 
             if (session) {
                 // User is logged in - check if they can access this order
-                console.log('[AuthGuard] User logged in:', session.user.email);
+
 
                 try {
                     const token = session.access_token;
@@ -51,7 +51,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
                         return;
                     } else if (response.status === 403) {
                         // Order belongs to another user - need to switch account
-                        console.log('[AuthGuard] Order belongs to another user, need to switch account');
+
 
                         // Sign out current user
                         await supabase.auth.signOut();
@@ -74,7 +74,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
             // Not logged in OR just logged out because wrong account
             // Check order auth status to get the correct phone/name for login
-            console.log('[AuthGuard] Checking order auth status...');
+
             try {
                 const apiUrl = salesToken
                     ? `/api/order/${uuid}/check-auth?s_token=${salesToken}`
@@ -84,7 +84,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
                 if (response.ok) {
                     const data = await response.json();
-                    console.log('[AuthGuard] Order auth check result:', data);
+
 
                     // Build redirect URL
                     const baseUrl = data.authType === 'login' ? '/login' : '/register';
@@ -115,7 +115,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
 
         // 3. No session and no valid sales token - redirect to login
-        console.log('[AuthGuard] No session, redirecting to login');
+
         const searchStr = searchParams.toString();
         const currentPath = pathname + (searchStr ? '?' + searchStr : '');
         router.replace(`/login?returnUrl=${encodeURIComponent(currentPath)}`);
