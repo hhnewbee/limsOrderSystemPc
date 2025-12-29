@@ -90,12 +90,8 @@ function RegisterContent() {
                     message.warning('自动登录失败，请手动登录');
                     router.replace(`/login?phone=${phone}&returnUrl=${encodeURIComponent(returnUrl)}`);
                 } else {
-                    // Redirect to order page or return URL
-                    if (orderUuid) {
-                        router.replace(`/${orderUuid}`);
-                    } else {
-                        router.replace(returnUrl);
-                    }
+                    // 🟢 使用 returnUrl（已包含 UD 参数）
+                    router.replace(returnUrl);
                 }
             }
         } catch (err: any) {

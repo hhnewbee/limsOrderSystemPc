@@ -27,21 +27,27 @@ export default function AuthGuard({ children }: AuthGuardProps) {
         const uuid = pathname.replace('/', '').split('?')[0];
         const salesToken = searchParams.get('s_token');
 
+        // 🟢 Extract DingTalk userId from UD parameter (Base64 encoded)
+        const udParam = searchParams.get('UD');
+        const dingtalkUserId = udParam ? atob(udParam) : undefined;
+
         // 1. Check if user is already logged in
         const { data: { session } } = await supabase.auth.getSession();
 
-        // For order pages, we need to verify the user has access to this specific order
-        if (uuid && uuid.length > 10) {
-
-
+        // 2. Check order access (only if on an order page)
+        if (uuid && uuid.length > 10 && !pathname.includes('/login') && !pathname.includes('/register')) {
+            // Already logged in - verify permission for this order
             if (session) {
                 // User is logged in - check if they can access this order
 
 
                 try {
                     const token = session.access_token;
-                    const response = await fetch(`/api/order/${uuid}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
+                    const response = await fetch(`/api/order/${uuid}?s_token=${salesToken || ''}`, {
+                        headers: {
+                            Authorization: `Bearer ${session.access_token}`,
+                            'X-DingTalk-UserId': dingtalkUserId || '' // 🟢 Pass dingtalkUserId
+                        }
                     });
 
                     if (response.ok) {
@@ -80,11 +86,17 @@ export default function AuthGuard({ children }: AuthGuardProps) {
                     ? `/api/order/${uuid}/check-auth?s_token=${salesToken}`
                     : `/api/order/${uuid}/check-auth`;
 
-                const response = await fetch(apiUrl);
+                const response = await fetch(apiUrl, {
+                    headers: {
+                        'X-DingTalk-UserId': dingtalkUserId || '' // 🟢 Pass dingtalkUserId
+                    }
+                });
 
                 if (response.ok) {
                     const data = await response.json();
 
+                    // 🟢 构建包含 UD 参数的 returnUrl
+                    const returnUrlWithUD = udParam ? `/${uuid}?UD=${udParam}` : `/${uuid}`;
 
                     // Build redirect URL
                     const baseUrl = data.authType === 'login' ? '/login' : '/register';
@@ -93,7 +105,8 @@ export default function AuthGuard({ children }: AuthGuardProps) {
                         customerName: data.customerName || '',
                         phoneReadOnly: 'true',
                         orderUuid: uuid,
-                        returnUrl: `/${uuid}`
+                        returnUrl: returnUrlWithUD, // 🟢 包含 UD 参数
+                        ...(udParam ? { UD: udParam } : {}) // 🟢 也直接传递 UD
                     });
 
                     router.replace(`${baseUrl}?${params.toString()}`);

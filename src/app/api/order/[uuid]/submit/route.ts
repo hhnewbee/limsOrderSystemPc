@@ -25,6 +25,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // 🟢 Extract Sales Token
     const salesToken = (json as any)._salesToken as string | undefined;
+    // 🟢 Extract DingTalk User ID (passed from URL UD parameter, decoded in frontend)
+    const dingtalkUserId = (json as any)._dingtalkUserId as string | undefined;
     let operatorId: string | undefined;
 
     if (salesToken) {
@@ -34,6 +36,12 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       } catch (e) {
         console.warn('[Submit] Invalid Sales Token');
       }
+    }
+
+    // 🟢 Prefer dingtalkUserId (from UD param) over operatorId (from s_token)
+    const effectiveUserId = dingtalkUserId || operatorId;
+    if (dingtalkUserId) {
+      console.log(`[Submit] Using DingTalk User ID: ${dingtalkUserId}`);
     }
 
     // 1. 预检订单状态
@@ -76,7 +84,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         .eq('uuid', uuid);
     }
 
-    // 4. 提交到钉钉宜搭
+    // 4. 提交到钉钉宜搭 (userId 验证由 dingtalk.ts 函数统一处理)
     const tableStatus = '客户已提交';
     if (order.form_instance_id) {
       try {
@@ -92,8 +100,8 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
         console.log('[API] 准备提交到钉钉:', { formInstanceId: order.form_instance_id, samplesLink, tableStatus });
 
-        // 🟢 Pass the Sales Operator ID (if any)
-        await updateFormData(order.form_instance_id, yidaData, operatorId);
+        // 🟢 Pass the effective user ID (dingtalkUserId or salesToken operatorId)
+        await updateFormData(order.form_instance_id, yidaData, effectiveUserId);
 
       } catch (yidaError: any) {
         console.error('[API] 钉钉同步警告:', yidaError.message);

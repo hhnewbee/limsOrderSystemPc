@@ -3,7 +3,7 @@
 
 import React, { Suspense } from 'react';
 import { useParams } from 'next/navigation';
-import { Spin, App } from 'antd';
+import { Spin, App, Card, Result } from 'antd';
 import styles from './page.module.scss';
 
 // 引入组件
@@ -30,13 +30,18 @@ function OrderContentInner() {
     const params = useParams();
     const searchParams = useSearchParams();
     const salesToken = searchParams.get('s_token');
+
+    // 🟢 Extract DingTalk userId from UD parameter (Base64 encoded)
+    const udParam = searchParams.get('UD');
+    const dingtalkUserId = udParam ? atob(udParam) : undefined;
+
     const { isOpen, toggleOpen, selectedUuid } = useProjectList();
 
     // 使用 Context 中的 selectedUuid（优先），或 URL 参数
     const urlUuid = Array.isArray(params.uuid) ? params.uuid[0] : params.uuid;
     const uuid = selectedUuid || urlUuid;
 
-    // 使用 Hook，传入 salesToken
+    // 使用 Hook，传入 salesToken 和 dingtalkUserId
     const {
         loading,
         saving,
@@ -50,10 +55,19 @@ function OrderContentInner() {
         handleBlur,
         handleSave,
         handleSubmit
-    } = useOrderLogic(uuid!, message, modal, salesToken); // 🟢 Pass Token
+    } = useOrderLogic(uuid!, message, modal, salesToken, dingtalkUserId); // 🟢 Pass dingtalkUserId
 
     // Content area - shows loading, error, or actual content
     const renderMainContent = () => {
+        // 🟢 必须携带 UD 参数才能访问订单
+        if (!dingtalkUserId) {
+            return (
+                <div style={{ textAlign: 'center', paddingTop: 100 }}>
+                    <Result status="error" title="链接无效" />
+                </div>
+            );
+        }
+
         if (loading) {
             return (
                 <div style={{ textAlign: 'center', paddingTop: 100 }}>

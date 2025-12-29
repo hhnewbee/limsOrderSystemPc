@@ -13,6 +13,9 @@ interface RouteParams {
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { uuid } = await params;
 
+  // 🟢 提取 DingTalk userId (验证由 dingtalk.ts 函数统一处理)
+  const dingtalkUserId = request.headers.get('X-DingTalk-UserId') || undefined;
+
   // 1. Security Checks
   const salesToken = request.nextUrl.searchParams.get('s_token');
   const authHeader = request.headers.get('Authorization');
@@ -122,15 +125,27 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
     const hasValidData = order && order.customer_name;
 
+    // 🟢 Extract DingTalk userId from header (required for DingTalk API calls)
+    const dingtalkUserId = request.headers.get('X-DingTalk-UserId') || undefined;
+
     // 3. Sync from DingTalk if not found
     if (!order || !hasValidData) {
       console.log('[API] 本地无数据，尝试从钉钉获取...');
+
+      // 🟢 验证：必须提供 dingtalkUserId 才能调用钉钉接口
+      if (!dingtalkUserId) {
+        console.error('[API] 无法同步钉钉数据：缺少 UD 参数');
+        return NextResponse.json({
+          error: '链接无效：缺少必要的身份标识参数 (UD)',
+          code: 'MISSING_DINGTALK_USER_ID'
+        }, { status: 400 });
+      }
 
       if (order && !hasValidData) {
         await supabase.from('orders').delete().eq('uuid', uuid);
       }
 
-      const yidaData = await searchFormData(uuid);
+      const yidaData = await searchFormData(uuid, dingtalkUserId); // 🟢 Pass dingtalkUserId
       const parsedData = parseYidaFormData(yidaData);
 
       if (!parsedData) {

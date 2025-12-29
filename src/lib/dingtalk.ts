@@ -4,20 +4,18 @@ import type { OrderFormData, YidaRawFormData } from '@/types/order';
 // 🟢 引入统一转换器，解决命名风格不一致问题
 import { yidaToApp, appToYida } from '@/lib/converters';
 
-// 钉钉配置接口
+// 钉钉配置接口 (userId removed - must be passed explicitly)
 interface YidaConfig {
   appType: string;
   systemToken: string;
   formUuid: string;
-  userId: string;
 }
 
-// 钉钉宜搭配置
+// 钉钉宜搭配置 (不包含 userId，必须从 URL 参数获取)
 const YIDA_CONFIG: YidaConfig = {
   appType: process.env.DINGTALK_APP_TYPE || 'APP_O1HLHANBEJ2G788IOXWF',
   systemToken: process.env.DINGTALK_SYSTEM_TOKEN || 'R8E66G81C7E11M0ON97O497HGBCR3VJ9ZY7JMZRZ',
-  formUuid: process.env.DINGTALK_FORM_UUID || 'FORM-D184603ADC1140688858D03704BD351E10JG',
-  userId: process.env.DINGTALK_USER_ID || '193007455224805338'
+  formUuid: process.env.DINGTALK_FORM_UUID || 'FORM-D184603ADC1140688858D03704BD351E10JG'
 };
 
 const DINGTALK_API_BASE = 'https://api.dingtalk.com';
@@ -86,8 +84,13 @@ async function getAccessToken(): Promise<string> {
 }
 
 // 根据唯一标识码查询表单数据 (使用HTTP API)
-export async function searchFormData(uniqueId: string): Promise<any> {
-  debugLog('searchFormData - 开始查询', { uniqueId });
+export async function searchFormData(uniqueId: string, userId?: string): Promise<any> {
+  // 🟢 统一验证：必须提供 userId
+  if (!userId) {
+    throw new Error('DingTalk API 调用失败：缺少必要的 userId 参数 (UD)');
+  }
+
+  debugLog('searchFormData - 开始查询', { uniqueId, userId });
 
   try {
     const accessToken = await getAccessToken();
@@ -103,7 +106,7 @@ export async function searchFormData(uniqueId: string): Promise<any> {
     const requestBody = {
       formUuid: YIDA_CONFIG.formUuid,
       systemToken: YIDA_CONFIG.systemToken,
-      userId: YIDA_CONFIG.userId,
+      userId: userId, // 🟢 必须传入 userId
       appType: YIDA_CONFIG.appType,
       searchCondition: searchCondition,
       useAlias: true
@@ -133,6 +136,11 @@ export async function searchFormData(uniqueId: string): Promise<any> {
 
 // 保存表单数据到钉钉宜搭 (通常用于新建)
 export async function saveFormData(formData: Record<string, any>, operatorId?: string): Promise<any> {
+  // 🟢 统一验证：必须提供 operatorId
+  if (!operatorId) {
+    throw new Error('DingTalk API 调用失败：缺少必要的 operatorId 参数 (UD)');
+  }
+
   debugLog('saveFormData - 开始保存', { formData, operatorId });
 
   try {
@@ -141,7 +149,7 @@ export async function saveFormData(formData: Record<string, any>, operatorId?: s
     const requestBody = {
       formUuid: YIDA_CONFIG.formUuid,
       systemToken: YIDA_CONFIG.systemToken,
-      userId: operatorId || YIDA_CONFIG.userId, // 🟢 优先使用传入的销售ID
+      userId: operatorId, // 🟢 必须传入 operatorId
       appType: YIDA_CONFIG.appType,
       formDataJson: JSON.stringify(formData)
     };
@@ -156,6 +164,11 @@ export async function saveFormData(formData: Record<string, any>, operatorId?: s
 
 // 更新表单数据到钉钉宜搭
 export async function updateFormData(formInstanceId: string, formData: Record<string, any>, operatorId?: string): Promise<any> {
+  // 🟢 统一验证：必须提供 operatorId
+  if (!operatorId) {
+    throw new Error('DingTalk API 调用失败：缺少必要的 operatorId 参数 (UD)');
+  }
+
   debugLog('updateFormData - 开始更新', { formInstanceId, formData });
 
   try {
@@ -164,7 +177,7 @@ export async function updateFormData(formInstanceId: string, formData: Record<st
     const requestBody = {
       formUuid: YIDA_CONFIG.formUuid,
       systemToken: YIDA_CONFIG.systemToken,
-      userId: operatorId || YIDA_CONFIG.userId, // 🟢 优先使用传入的销售ID
+      userId: operatorId, // 🟢 必须传入 operatorId
       appType: YIDA_CONFIG.appType,
       formInstanceId: formInstanceId,
       updateFormDataJson: JSON.stringify(formData),

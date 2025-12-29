@@ -24,6 +24,9 @@ interface CheckAuthResponse {
 export async function GET(request: NextRequest, { params }: RouteParams) {
     const { uuid } = await params;
 
+    // 🟢 提取 DingTalk userId (用于从钉钉获取订单数据)
+    const dingtalkUserId = request.headers.get('X-DingTalk-UserId') || undefined;
+
     // 1. Validate Sales Token (optional)
     const salesToken = request.nextUrl.searchParams.get('s_token');
     let operatorId: string | null = null;
@@ -58,7 +61,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         } else {
             // 3. If order not in DB, fetch from DingTalk to get customer phone
             console.log('[check-auth] Order not in DB, fetching from DingTalk...');
-            const yidaData = await searchFormData(uuid);
+            const yidaData = await searchFormData(uuid, dingtalkUserId); // 🟢 Pass dingtalkUserId
             const parsedData = parseYidaFormData(yidaData);
 
             if (!parsedData) {

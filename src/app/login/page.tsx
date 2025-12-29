@@ -1,17 +1,13 @@
 'use client';
 
 import React, { useState, Suspense } from 'react';
-import { Form, Input, Button, Card, message, Typography, Spin, Alert } from 'antd';
+import { Form, Input, Button, Card, message, Typography, Spin, Alert, Result } from 'antd';
 import { MobileOutlined, LockOutlined } from '@ant-design/icons';
 import { supabase } from '@/lib/supabase';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 
 const { Title, Text } = Typography;
-
-const { Result } = require('antd'); // Add Result to imports or assume it's imported
-
-// ... import Result at the top if not present, checking imports
 
 function LoginContent() {
     const [loading, setLoading] = useState(false);
@@ -25,39 +21,33 @@ function LoginContent() {
     const orderUuid = searchParams.get('orderUuid') || '';
     const returnUrl = searchParams.get('returnUrl') || '/';
 
-    // Strict Access Control: Must have phone or order info
-    if (!defaultPhone && !orderUuid) {
+    // 检查是否有有效的订单链接
+    const hasValidReturnUrl = returnUrl && returnUrl.length > 10 && returnUrl !== '/';
+
+    // 必须通过订单链接访问
+    if (!defaultPhone && !orderUuid && !hasValidReturnUrl) {
         return (
             <div style={{
                 display: 'flex', justifyContent: 'center', alignItems: 'center',
                 minHeight: '100vh', background: '#f0f2f5'
             }}>
                 <Card style={{ width: 400, textAlign: 'center' }}>
-                    <Result
-                        status="403"
-                        title="访问被拒绝"
-                        subTitle="请通过订单链接访问此页面"
-                    />
+                    <Result status="403" title="访问被拒绝" subTitle="请通过订单链接访问此页面" />
                 </Card>
             </div>
         );
     }
 
-    // Force read-only if we have a phone number (prevent manual edits)
-    const phoneReadOnly = !!defaultPhone;
-
-    // Display name: prefer customer name, fallback to phone
+    // 显示名称：优先客户名，其次手机号
     const displayAccount = customerName || defaultPhone;
-
 
     const onFinish = async (values: any) => {
         setLoading(true);
         try {
-            // Create virtual email from phone (always use phone for auth)
-            const phone = values.phone || defaultPhone;
-            const email = `${phone}@client.lims`;
+            // 使用手机号构建虚拟邮箱登录
+            const email = `${defaultPhone}@client.lims`;
 
-            const { data, error } = await supabase.auth.signInWithPassword({
+            const { error } = await supabase.auth.signInWithPassword({
                 email: email,
                 password: values.password,
             });
@@ -70,12 +60,8 @@ function LoginContent() {
                 }
             } else {
                 message.success('登录成功');
-                // Redirect to order page or return URL
-                if (orderUuid) {
-                    router.replace(`/${orderUuid}`);
-                } else {
-                    router.replace(returnUrl);
-                }
+                // 🟢 使用 returnUrl（已包含 UD 参数）
+                router.replace(returnUrl);
             }
         } catch (err: any) {
             message.error('系统错误');
@@ -105,38 +91,14 @@ function LoginContent() {
                     />
                 )}
 
-                <Form
-                    form={form}
-                    name="login"
-                    onFinish={onFinish}
-                    size="large"
-                    initialValues={{ phone: defaultPhone }}
-                >
-                    {/* Display customer name/phone as readonly */}
-                    {phoneReadOnly && displayAccount && (
-                        <Form.Item>
-                            <Input
-                                prefix={<MobileOutlined />}
-                                value={displayAccount}
-                                disabled
-                                style={{ backgroundColor: '#f5f5f5' }}
-                            />
-                        </Form.Item>
-                    )}
-
-                    {/* Phone input (hidden when readonly, visible for manual login) */}
-                    <Form.Item
-                        name="phone"
-                        rules={!phoneReadOnly ? [
-                            { required: true, message: '请输入手机号!' },
-                            { pattern: /^1[3-9]\d{9}$/, message: '手机号格式不正确' }
-                        ] : []}
-                        hidden={phoneReadOnly}
-                    >
+                <Form form={form} name="login" onFinish={onFinish} size="large">
+                    {/* 账户显示（只读） */}
+                    <Form.Item>
                         <Input
                             prefix={<MobileOutlined />}
-                            placeholder="手机号"
-                            maxLength={11}
+                            value={displayAccount}
+                            disabled
+                            style={{ backgroundColor: '#f5f5f5' }}
                         />
                     </Form.Item>
 
@@ -172,4 +134,3 @@ export default function LoginPage() {
         </Suspense>
     );
 }
-

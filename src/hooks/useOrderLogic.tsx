@@ -36,7 +36,8 @@ export function useOrderLogic(
     uuid: string,
     message: any,
     modal: any,
-    salesToken: string | null = null // 🟢 Accept Sales Token
+    salesToken: string | null = null, // 🟢 Accept Sales Token
+    dingtalkUserId?: string // 🟢 Accept DingTalk User ID
 ): UseOrderLogicResult {
 
     const [loading, setLoading] = useState(true);
@@ -60,6 +61,14 @@ export function useOrderLogic(
     // --- 1. 加载数据 ---
     const loadOrderData = useCallback(async () => {
         if (isLoadingRef.current) return;
+
+        // 🟢 必须有 dingtalkUserId 才发起请求
+        if (!dingtalkUserId) {
+            console.warn('[useOrderLogic] 缺少 dingtalkUserId，跳过数据加载');
+            setLoading(false);
+            return;
+        }
+
         isLoadingRef.current = true;
 
         try {
@@ -68,12 +77,10 @@ export function useOrderLogic(
             const { data: { session } } = await supabase.auth.getSession();
             const token = session?.access_token;
 
-            // Debug log
-
-
             const response = await axios.get<OrderFormData>(`/api/order/${uuid}`, {
                 headers: {
-                    Authorization: token ? `Bearer ${token}` : undefined
+                    Authorization: token ? `Bearer ${token}` : undefined,
+                    'X-DingTalk-UserId': dingtalkUserId // 🟢 已确保非空
                 },
                 params: {
                     s_token: salesToken // 🟢 Also pass sales token in query for GET checks
@@ -88,13 +95,13 @@ export function useOrderLogic(
             setLoading(false);
             isLoadingRef.current = false;
         }
-    }, [uuid, message, salesToken]);
+    }, [uuid, message, salesToken, dingtalkUserId]); // 🟢 添加 dingtalkUserId 依赖
 
     useEffect(() => {
-        if (uuid) {
+        if (uuid && dingtalkUserId) { // 🟢 同时需要 uuid 和 dingtalkUserId
             loadOrderData();
         }
-    }, [uuid, loadOrderData]);
+    }, [uuid, dingtalkUserId, loadOrderData]);
 
     // --- 2. 脏检查 (优化：增加 500ms 防抖，避免打字卡顿) ---
 
@@ -211,10 +218,11 @@ export function useOrderLogic(
             onOk: async () => {
                 try {
                     setSubmitting(true);
-                    // 🟢 Pass salesToken to backend
+                    // 🟢 Pass salesToken and dingtalkUserId to backend
                     const response = await axios.post(`/api/order/${uuid}/submit`, {
                         ...orderData,
-                        _salesToken: salesToken
+                        _salesToken: salesToken,
+                        _dingtalkUserId: dingtalkUserId // 🟢 Pass dingtalkUserId
                     });
                     message.success('提交成功');
 
