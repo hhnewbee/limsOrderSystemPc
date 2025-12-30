@@ -61,12 +61,11 @@ export default function SampleInfoModule({ data, onBlur, onChange, disabled, err
                     >
                         <InputNumber
                             value={data.detectionQuantity}
-                            onChange={(value) => onChange('detectionQuantity', value)}
-                            onBlur={() => onBlur('detectionQuantity')}
-                            disabled={disabled}
+                            disabled
                             min={1}
                             style={{ width: '100%' }}
-                            placeholder="请输入检测数量"
+                            placeholder="自动计算"
+                            className="readonly-field"
                         />
                     </Form.Item>
                     <Form.Item
