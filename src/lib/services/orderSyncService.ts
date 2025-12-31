@@ -7,7 +7,7 @@
 
 import { supabase } from '@/lib/supabase';
 import { supabaseAdmin } from '@/lib/supabase-admin';
-import { searchFormData, parseYidaFormData } from '@/lib/dingtalk';
+import { searchFormData, parseYidaFormData, updateFormData } from '@/lib/dingtalk';
 import { appToDb } from '@/lib/converters';
 import type { DBOrder, DBSample, DBPairwise, DBMultiGroup, OrderFormData } from '@/types/order';
 import type { AuthContext } from './authService';
@@ -134,6 +134,7 @@ export async function syncOrderFromDingTalk(
 
     try {
         // 2. 调用钉钉 API 获取数据
+        debugger
         const yidaData = await searchFormData(uuid, dingtalkUserId);
         const parsedData = parseYidaFormData(yidaData);
 
@@ -174,7 +175,26 @@ export async function syncOrderFromDingTalk(
             throw new Error(`初始化/更新订单失败: ${upsertError.message}`);
         }
 
-        // 6. 返回完整订单结构
+        // 6. 更新钉钉 TableStatus 为"客户编辑中" (首次加载时)
+        // 钉钉默认值是 "客户待编辑"，客户首次访问后应更新为 "客户编辑中"
+        if (parsedData.formInstanceId && parsedData.tableStatus === '客户待编辑') {
+            try {
+                await updateFormData(
+                    parsedData.formInstanceId,
+                    { TableStatus: '客户编辑中' },
+                    dingtalkUserId
+                );
+                console.log(`[OrderSyncService] 已更新钉钉 TableStatus 为"客户编辑中"`);
+
+                // 同步更新本地数据
+                newOrder.table_status = '客户编辑中';
+            } catch (updateError) {
+                // 更新失败不影响主流程，仅记录日志
+                console.warn('[OrderSyncService] 更新钉钉 TableStatus 失败:', updateError);
+            }
+        }
+
+        // 7. 返回完整订单结构
         const fullOrder: FullDBOrder = {
             ...newOrder,
             sample_list: [],

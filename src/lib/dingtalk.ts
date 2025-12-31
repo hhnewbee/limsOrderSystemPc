@@ -125,11 +125,16 @@ export async function searchFormData(uniqueId: string, userId?: string): Promise
 
     return response.data;
   } catch (error: any) {
-    debugLog('searchFormData - 错误', {
+    // 🟢 增强错误日志，使用 JSON.stringify 确保完整输出
+    const errorDetails = {
       status: error.response?.status,
-      data: error.response?.data,
-      message: error.message
-    });
+      statusText: error.response?.statusText,
+      responseData: error.response?.data,
+      message: error.message,
+      uniqueId,
+      userId
+    };
+    console.error('[DingTalk] searchFormData 调用失败:', JSON.stringify(errorDetails, null, 2));
     throw error;
   }
 }
