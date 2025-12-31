@@ -8,7 +8,7 @@
 import { NextRequest } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { decrypt } from '@/lib/crypto';
-import type { DBOrder } from '@/types/order';
+import type { OrderData } from '@/types/order';
 
 // ============================================================
 // 类型定义
@@ -122,8 +122,8 @@ export async function extractAuthContext(request: NextRequest): Promise<AuthCont
  * 基于用户角色进行分层权限检查:
  * - Admin: 可访问所有订单
  * - Lab: 禁止访问客户订单页面 (应使用 /lab/samples)
- * - Sales: 只能访问自己负责的订单 (salesman_contact 匹配)
- * - Customer: 只能访问自己的订单 (user_id 或 customer_phone 匹配)
+ * - Sales: 只能访问自己负责的订单 (salesmanContact 匹配)
+ * - Customer: 只能访问自己的订单 (userId 或 customerPhone 匹配)
  *
  * @param order - 数据库订单对象
  * @param auth - 认证上下文
@@ -137,7 +137,7 @@ export async function extractAuthContext(request: NextRequest): Promise<AuthCont
  * }
  * ```
  */
-export function validateOrderAccess(order: DBOrder, auth: AuthContext): AccessCheckResult {
+export function validateOrderAccess(order: OrderData, auth: AuthContext): AccessCheckResult {
     // 销售端 Token 访问 - 直接允许
     if (auth.operatorId) {
         return { allowed: true };
@@ -170,7 +170,7 @@ export function validateOrderAccess(order: DBOrder, auth: AuthContext): AccessCh
 
         case 'sales':
             // 销售只能访问自己负责的订单
-            if (order.salesman_contact !== auth.userPhone) {
+            if (order.salesmanContact !== auth.userPhone) {
                 return {
                     allowed: false,
                     reason: 'Forbidden: Order belongs to another salesman',
@@ -199,10 +199,10 @@ export function validateOrderAccess(order: DBOrder, auth: AuthContext): AccessCh
  * @param auth - 认证上下文
  * @returns 权限校验结果
  */
-function validateCustomerAccess(order: DBOrder, auth: AuthContext): AccessCheckResult {
+function validateCustomerAccess(order: OrderData, auth: AuthContext): AccessCheckResult {
     // 订单已有所有者
-    if (order.user_id) {
-        if (order.user_id !== auth.userId) {
+    if (order.userId) {
+        if (order.userId !== auth.userId) {
             return {
                 allowed: false,
                 reason: 'Forbidden: Order belongs to another user',
@@ -213,7 +213,7 @@ function validateCustomerAccess(order: DBOrder, auth: AuthContext): AccessCheckR
     }
 
     // 订单无所有者，检查手机号是否匹配
-    const orderPhone = order.customer_phone;
+    const orderPhone = order.customerPhone;
     if (orderPhone && orderPhone !== auth.userPhone) {
         console.log(`[AuthService] 手机号不匹配: 订单=${orderPhone}, 用户=${auth.userPhone}`);
         return {

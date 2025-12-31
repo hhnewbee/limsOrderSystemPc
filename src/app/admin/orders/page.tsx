@@ -85,17 +85,17 @@ export default function OrderManagementPage() {
     };
 
     const columns = [
-        { title: '项目编号', dataIndex: 'project_number', key: 'project_number', width: 120 },
-        { title: '客户名', dataIndex: 'customer_name', key: 'customer_name', width: 100 },
-        { title: '客户电话', dataIndex: 'customer_phone', key: 'customer_phone', width: 120 },
-        { title: '客户单位', dataIndex: 'customer_unit', key: 'customer_unit', width: 150, ellipsis: true },
-        { title: '服务种类', dataIndex: 'service_type', key: 'service_type', width: 120 },
-        { title: '检测数量', dataIndex: 'detection_quantity', key: 'detection_quantity', width: 90 },
-        { title: '单价', dataIndex: 'unit_price', key: 'unit_price', width: 90, render: (p: number) => p ? `¥${p}` : '-' },
-        { title: '业务员', dataIndex: 'salesman_name', key: 'salesman_name', width: 100 },
+        { title: '项目编号', dataIndex: 'projectNumber', key: 'projectNumber', width: 120 },
+        { title: '客户名', dataIndex: 'customerName', key: 'customerName', width: 100 },
+        { title: '客户电话', dataIndex: 'customerPhone', key: 'customerPhone', width: 120 },
+        { title: '客户单位', dataIndex: 'customerUnit', key: 'customerUnit', width: 150, ellipsis: true },
+        { title: '服务种类', dataIndex: 'serviceType', key: 'serviceType', width: 120 },
+        { title: '检测数量', dataIndex: 'detectionQuantity', key: 'detectionQuantity', width: 90 },
+        { title: '单价', dataIndex: 'unitPrice', key: 'unitPrice', width: 90, render: (p: number) => p ? `¥${p}` : '-' },
+        { title: '业务员', dataIndex: 'salesmanName', key: 'salesmanName', width: 100 },
         {
             title: '归属用户',
-            dataIndex: 'user_phone',
+            dataIndex: 'userPhone',
             key: 'user',
             width: 140,
             render: (phone: string) => phone ? <Tag color="blue">{phone}</Tag> : <Tag>未绑定</Tag>
@@ -108,7 +108,7 @@ export default function OrderManagementPage() {
             render: (_: any, record: any) => (
                 <Space>
                     <Button size="small" icon={<LinkOutlined />} onClick={() => { setSelectedOrder(record); setIsBindOpen(true); }}>绑定</Button>
-                    {record.user_id && (
+                    {record.userId && (
                         <Button size="small" danger icon={<DisconnectOutlined />} onClick={() => handleUnbind(record)}>解绑</Button>
                     )}
                     <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>

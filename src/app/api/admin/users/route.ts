@@ -88,8 +88,8 @@ export async function DELETE(request: NextRequest) {
         // First, unlink any orders associated with this user
         const { error: unlinkError } = await supabaseAdmin
             .from('orders')
-            .update({ user_id: null })
-            .eq('user_id', id);
+            .update({ userId: null })
+            .eq('userId', id);
 
         if (unlinkError) {
             console.warn('[DELETE User] Error unlinking orders:', unlinkError);

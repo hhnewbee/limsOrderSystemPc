@@ -8,19 +8,19 @@ export async function GET(request: NextRequest) {
         const page = parseInt(searchParams.get('page') || '1');
         const search = searchParams.get('search') || '';
 
-        // 1. Fetch Orders from DB
+        // 1. Fetch Orders from DB (camelCase column names)
         let query = supabaseAdmin
             .from('orders')
             .select(`
-                id, uuid, project_number, customer_name, status, table_status, created_at,
-                user_id,
-                customer_phone, customer_unit, service_type, salesman_name, unit_price, detection_quantity
+                id, uuid, "projectNumber", "customerName", status, "tableStatus", "createdAt",
+                "userId",
+                "customerPhone", "customerUnit", "serviceType", "salesmanName", "unitPrice", "detectionQuantity"
             `)
-            .order('created_at', { ascending: false })
+            .order('createdAt', { ascending: false })
             .range((page - 1) * 10, page * 10 - 1);
 
         if (search) {
-            query = query.or(`project_number.ilike.%${search}%,customer_name.ilike.%${search}%,uuid.ilike.%${search}%`);
+            query = query.or(`projectNumber.ilike.%${search}%,customerName.ilike.%${search}%,uuid.ilike.%${search}%`);
         }
 
         const { data: orders, error, count } = await query;
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest) {
         if (error) throw error;
 
         // 2. Fetch User Info for each order (Manual Join because Auth is separate schema)
-        const userIds = orders.map(o => o.user_id).filter(Boolean);
+        const userIds = orders.map(o => o.userId).filter(Boolean);
         let userMap: Record<string, string> = {};
 
         if (userIds.length > 0) {
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
 
         const enrichedOrders = orders.map(o => ({
             ...o,
-            user_phone: o.user_id ? (userMap[o.user_id] || `${o.user_id} (Unknown)`) : null
+            userPhone: o.userId ? (userMap[o.userId] || `${o.userId} (Unknown)`) : null
         }));
 
         return NextResponse.json({ orders: enrichedOrders });
@@ -80,10 +80,10 @@ export async function POST(request: NextRequest) {
             userId = users.id;
         }
 
-        // Update Order
+        // Update Order (camelCase)
         const { error } = await supabaseAdmin
             .from('orders')
-            .update({ user_id: userId })
+            .update({ userId: userId })
             .eq('uuid', uuid);
 
         if (error) throw error;
@@ -109,7 +109,7 @@ export async function DELETE(request: NextRequest) {
         const { error: sampleError } = await supabaseAdmin
             .from('sample_list')
             .delete()
-            .eq('order_uuid', uuid);
+            .eq('orderUuid', uuid);
 
         if (sampleError) {
             console.error('[Admin] 删除样本清单失败:', sampleError);
@@ -118,7 +118,7 @@ export async function DELETE(request: NextRequest) {
         const { error: pairwiseError } = await supabaseAdmin
             .from('pairwise_comparison')
             .delete()
-            .eq('order_uuid', uuid);
+            .eq('orderUuid', uuid);
 
         if (pairwiseError) {
             console.error('[Admin] 删除两组比较失败:', pairwiseError);
@@ -127,7 +127,7 @@ export async function DELETE(request: NextRequest) {
         const { error: multiGroupError } = await supabaseAdmin
             .from('multi_group_comparison')
             .delete()
-            .eq('order_uuid', uuid);
+            .eq('orderUuid', uuid);
 
         if (multiGroupError) {
             console.error('[Admin] 删除多组比较失败:', multiGroupError);

@@ -12,7 +12,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { dbToApp } from '@/lib/converters';
+// 🎉 三端统一格式，不再需要 dbToApp 转换器
 
 // 服务层
 import {
@@ -27,7 +27,7 @@ import {
   hasValidOrderData,
   syncOrderFromDingTalk,
   claimOrderForUser,
-  type FullDBOrder
+  type FullOrderData
 } from '@/lib/services/orderSyncService';
 
 // ============================================================
@@ -98,7 +98,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       // 需要将订单绑定到当前用户
       if (accessResult.shouldClaimOrder && auth.userId) {
         await claimOrderForUser(uuid, auth.userId);
-        order.user_id = auth.userId;
+        order.userId = auth.userId;
       }
     }
 
@@ -130,10 +130,9 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     // ========================================
-    // Step 5: 转换并返回数据
+    // Step 5: 返回数据 (三端统一格式，无需转换)
     // ========================================
-    const formattedData = dbToApp(order as FullDBOrder);
-    return NextResponse.json(formattedData);
+    return NextResponse.json(order);
 
   } catch (error: any) {
     console.error('[API] 订单获取失败:', error);

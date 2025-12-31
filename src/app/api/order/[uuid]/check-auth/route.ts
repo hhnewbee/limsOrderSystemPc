@@ -43,10 +43,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     }
 
     try {
-        // 2. Check if order exists in DB
+        // 2. Check if order exists in DB (camelCase columns)
         const { data: order } = await supabase
             .from('orders')
-            .select('uuid, user_id, customer_phone, customer_name')
+            .select('uuid, "userId", "customerPhone", "customerName"')
             .eq('uuid', uuid)
             .maybeSingle();
 
@@ -55,14 +55,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         let boundUserId: string | null = null;
 
         if (order) {
-            boundUserId = order.user_id;
-            customerPhone = order.customer_phone;
-            customerName = order.customer_name;
+            boundUserId = order.userId;
+            customerPhone = order.customerPhone;
+            customerName = order.customerName;
         } else {
             // 3. If order not in DB, fetch from DingTalk to get customer phone
             console.log('[check-auth] Order not in DB, fetching from DingTalk...');
-            const yidaData = await searchFormData(uuid, dingtalkUserId); // 🟢 Pass dingtalkUserId
+            const yidaData = await searchFormData(uuid, dingtalkUserId);
             const parsedData = parseYidaFormData(yidaData);
+
+            // 🔍 调试: 打印钉钉返回的数据，看看字段名
+            console.log('[check-auth] DingTalk parsedData keys:', parsedData ? Object.keys(parsedData) : 'null');
+            console.log('[check-auth] customerPhone field:', parsedData?.customerPhone);
 
             if (!parsedData) {
                 return NextResponse.json({ error: '订单不存在' }, { status: 404 });

@@ -3,8 +3,8 @@ import { supabase } from '@/lib/supabase';
 
 /**
  * API to get orders belonging to the current user
- * - Customers: get orders by user_id
- * - Sales: get orders where salesman_contact matches their phone
+ * - Customers: get orders by userId
+ * - Sales: get orders where salesmanContact matches their phone
  */
 export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('Authorization');
@@ -24,33 +24,34 @@ export async function GET(request: NextRequest) {
         const role = user.user_metadata?.role;
         const userPhone = user.email?.replace('@client.lims', '');
 
+        // camelCase column names
         let query = supabase
             .from('orders')
             .select(`
                 id,
                 uuid,
-                project_number,
-                product_no,
-                customer_name,
-                customer_unit,
-                service_type,
+                "projectNumber",
+                "productNo",
+                "customerName",
+                "customerUnit",
+                "serviceType",
                 status,
-                table_status,
-                created_at,
-                updated_at
+                "tableStatus",
+                "createdAt",
+                "updatedAt"
             `)
-            .order('updated_at', { ascending: false })
+            .order('updatedAt', { ascending: false })
             .limit(50);
 
         // Apply different filters based on role
         if (role === 'sales') {
-            // Sales users: get orders where salesman_contact matches their phone
-            query = query.eq('salesman_contact', userPhone);
+            // Sales users: get orders where salesmanContact matches their phone
+            query = query.eq('salesmanContact', userPhone);
         } else if (role === 'admin') {
             // Admin: get all orders (no filter, just limit)
         } else {
-            // Customer: get orders by user_id
-            query = query.eq('user_id', user.id);
+            // Customer: get orders by userId
+            query = query.eq('userId', user.id);
         }
 
         const { data: orders, error } = await query;

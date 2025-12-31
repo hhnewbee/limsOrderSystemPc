@@ -1,15 +1,18 @@
 /**
  * orderSyncService.ts - 订单同步服务
  *
+ * 🎉 简化版 - 使用统一的 camelCase 字段名
+ * 
  * 负责从钉钉宜搭同步订单数据，以及用户自动绑定逻辑。
- * 提取自 /api/order/[uuid]/route.ts，实现关注点分离。
+ * 
+ * @see .agent/architecture/field-schema-design.md
  */
 
 import { supabase } from '@/lib/supabase';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { searchFormData, parseYidaFormData, updateFormData } from '@/lib/dingtalk';
-import { appToDb } from '@/lib/converters';
-import type { DBOrder, DBSample, DBPairwise, DBMultiGroup, OrderFormData } from '@/types/order';
+import { processYidaData } from '@/lib/converters';
+import type { OrderData, SampleItem, PairwiseItem, MultiGroupItem } from '@/types/order';
 import type { AuthContext } from './authService';
 
 // ============================================================
@@ -19,26 +22,19 @@ import type { AuthContext } from './authService';
 /**
  * 完整的订单数据 (包含关联表)
  */
-export interface FullDBOrder extends DBOrder {
-    sample_list: DBSample[];
-    pairwise_comparison: DBPairwise[];
-    multi_group_comparison: DBMultiGroup[];
+export interface FullOrderData extends OrderData {
+    sampleList: SampleItem[];
+    pairwiseComparison: PairwiseItem[];
+    multiGroupComparison: MultiGroupItem[];
 }
 
 /**
  * 同步结果
  */
 export interface SyncResult {
-    /** 是否成功 */
     success: boolean;
-
-    /** 同步后的订单数据 */
-    order?: FullDBOrder;
-
-    /** 错误信息 */
+    order?: FullOrderData;
     error?: string;
-
-    /** HTTP 状态码 */
     statusCode?: number;
 }
 
@@ -48,72 +44,31 @@ export interface SyncResult {
 
 /**
  * 从数据库获取订单及其关联数据
- *
- * 一次性查询订单及其关联的:
- * - sample_list (样本清单)
- * - pairwise_comparison (两组比较)
- * - multi_group_comparison (多组比较)
- *
- * @param uuid - 订单 UUID
- * @returns 完整的订单数据，如果不存在返回 null
- *
- * @example
- * ```ts
- * const order = await fetchOrderFromDB(uuid);
- * if (!order) {
- *   // 本地无数据，需要从钉钉同步
- * }
- * ```
  */
-export async function fetchOrderFromDB(uuid: string): Promise<FullDBOrder | null> {
+export async function fetchOrderFromDB(uuid: string): Promise<FullOrderData | null> {
     const { data: rawOrder } = await supabase
         .from('orders')
         .select(`
             *,
-            sample_list(*),
-            pairwise_comparison(*),
-            multi_group_comparison(*)
+            sampleList:sample_list(*),
+            pairwiseComparison:pairwise_comparison(*),
+            multiGroupComparison:multi_group_comparison(*)
         `)
         .eq('uuid', uuid)
         .maybeSingle();
 
-    return rawOrder as FullDBOrder | null;
+    return rawOrder as FullOrderData | null;
 }
 
 /**
  * 检查订单是否有有效数据
- *
- * 简单判断: 必须有 customer_name 才算有效
- *
- * @param order - 订单数据
- * @returns 是否有效
  */
-export function hasValidOrderData(order: FullDBOrder | null): boolean {
-    return !!(order && order.customer_name);
+export function hasValidOrderData(order: FullOrderData | null): boolean {
+    return !!(order && order.customerName);
 }
 
 /**
  * 从钉钉宜搭同步订单数据
- *
- * 流程:
- * 1. 调用钉钉 API 获取宜搭表单数据
- * 2. 解析宜搭数据为应用格式
- * 3. 转换为数据库格式
- * 4. 尝试自动绑定用户
- * 5. 插入数据库
- *
- * @param uuid - 订单 UUID
- * @param dingtalkUserId - 钉钉用户ID (必需，用于调用钉钉API)
- * @param auth - 认证上下文 (用于自动绑定)
- * @returns 同步结果
- *
- * @example
- * ```ts
- * const result = await syncOrderFromDingTalk(uuid, dingtalkUserId, auth);
- * if (!result.success) {
- *   return NextResponse.json({ error: result.error }, { status: result.statusCode });
- * }
- * ```
  */
 export async function syncOrderFromDingTalk(
     uuid: string,
@@ -122,7 +77,6 @@ export async function syncOrderFromDingTalk(
 ): Promise<SyncResult> {
     console.log('[OrderSyncService] 本地无数据，尝试从钉钉获取...');
 
-    // 1. 验证: 必须有 dingtalkUserId
     if (!dingtalkUserId) {
         console.error('[OrderSyncService] 无法同步钉钉数据：缺少 UD 参数');
         return {
@@ -133,8 +87,7 @@ export async function syncOrderFromDingTalk(
     }
 
     try {
-        // 2. 调用钉钉 API 获取数据
-        debugger
+        // 1. 调用钉钉 API 获取数据
         const yidaData = await searchFormData(uuid, dingtalkUserId);
         const parsedData = parseYidaFormData(yidaData);
 
@@ -146,27 +99,27 @@ export async function syncOrderFromDingTalk(
             };
         }
 
-        // 3. 转换数据格式
-        const dbBase = appToDb({
+        // 2. 处理类型转换 (字段名已统一，无需映射)
+        const orderData = processYidaData({
             ...parsedData,
             uuid: uuid,
             status: 'draft',
-        } as OrderFormData);
+        }, parsedData.formInstanceId);
 
-        // 4. 自动绑定用户
+        // 3. 自动绑定用户
         const autoBindUserId = await resolveUserBinding(parsedData, auth);
 
-        // 5. 使用 upsert 插入或更新数据库 (避免硬删除风险)
+        // 4. 使用 upsert 插入或更新数据库
         const upsertPayload = {
-            ...dbBase,
-            user_id: autoBindUserId
+            ...orderData,
+            userId: autoBindUserId
         };
 
         const { data: newOrder, error: upsertError } = await supabase
             .from('orders')
             .upsert(upsertPayload, {
-                onConflict: 'uuid',  // 基于 uuid 冲突时更新
-                ignoreDuplicates: false  // 冲突时执行更新而非忽略
+                onConflict: 'uuid',
+                ignoreDuplicates: false
             })
             .select()
             .single();
@@ -175,31 +128,27 @@ export async function syncOrderFromDingTalk(
             throw new Error(`初始化/更新订单失败: ${upsertError.message}`);
         }
 
-        // 6. 更新钉钉 TableStatus 为"客户编辑中" (首次加载时)
-        // 钉钉默认值是 "客户待编辑"，客户首次访问后应更新为 "客户编辑中"
+        // 5. 更新钉钉 TableStatus (首次加载时)
         if (parsedData.formInstanceId && parsedData.tableStatus === '客户待编辑') {
             try {
                 await updateFormData(
                     parsedData.formInstanceId,
-                    { TableStatus: '客户编辑中' },
+                    { tableStatus: '客户编辑中' },
                     dingtalkUserId
                 );
-                console.log(`[OrderSyncService] 已更新钉钉 TableStatus 为"客户编辑中"`);
-
-                // 同步更新本地数据
-                newOrder.table_status = '客户编辑中';
+                console.log(`[OrderSyncService] 已更新钉钉 tableStatus 为"客户编辑中"`);
+                newOrder.tableStatus = '客户编辑中';
             } catch (updateError) {
-                // 更新失败不影响主流程，仅记录日志
-                console.warn('[OrderSyncService] 更新钉钉 TableStatus 失败:', updateError);
+                console.warn('[OrderSyncService] 更新钉钉 tableStatus 失败:', updateError);
             }
         }
 
-        // 7. 返回完整订单结构
-        const fullOrder: FullDBOrder = {
+        // 6. 返回完整订单结构
+        const fullOrder: FullOrderData = {
             ...newOrder,
-            sample_list: [],
-            pairwise_comparison: [],
-            multi_group_comparison: []
+            sampleList: [],
+            pairwiseComparison: [],
+            multiGroupComparison: []
         };
 
         console.log(`[OrderSyncService] 成功从钉钉同步订单 ${uuid}`);
@@ -217,12 +166,6 @@ export async function syncOrderFromDingTalk(
 
 /**
  * 解析用户绑定
- *
- * 根据认证上下文和订单手机号，确定应该绑定到哪个用户
- *
- * @param parsedData - 解析后的订单数据
- * @param auth - 认证上下文
- * @returns 应绑定的用户ID，如果无法确定返回 null
  */
 async function resolveUserBinding(
     parsedData: { customerPhone?: string },
@@ -261,12 +204,8 @@ async function resolveUserBinding(
 
 /**
  * 将订单绑定到用户
- *
- * @param uuid - 订单 UUID
- * @param userId - 用户 ID
  */
 export async function claimOrderForUser(uuid: string, userId: string): Promise<void> {
     console.log(`[OrderSyncService] 将订单 ${uuid} 绑定到用户 ${userId}`);
-    await supabase.from('orders').update({ user_id: userId }).eq('uuid', uuid);
+    await supabase.from('orders').update({ userId: userId }).eq('uuid', uuid);
 }
-

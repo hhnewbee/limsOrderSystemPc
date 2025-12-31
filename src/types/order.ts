@@ -1,88 +1,29 @@
-// File: src/types/order.ts
+/**
+ * Order Types - 统一类型定义
+ * 
+ * 🎉 三端统一使用 camelCase，无需区分 DB/App 类型！
+ * 
+ * @see .agent/architecture/field-schema-design.md
+ */
 
-// 对应数据库表结构的类型 (Supabase Raw Data)
-export interface DBOrder {
-    id: number;
-    uuid: string;
-    form_instance_id?: string;
-    customer_unit?: string;
-    customer_name?: string;
-    department?: string;
-    department_director?: string;
-    customer_phone?: string;
-    customer_email?: string;
-    service_type?: string;
-    product_line?: string;
-    special_instructions?: string;
-    species_name?: string;
-    species_latin_name?: string;
-    sample_type?: string;
-    sample_type_detail?: string;
-    detection_quantity?: number;
-    cell_count?: number;
-    preservation_medium?: string;
-    sample_preprocessing?: string;
-    remaining_sample_handling?: string;
-    need_bioinformatics_analysis?: boolean;
-    shipping_method?: string;
-    express_company_waybill?: string;
-    shipping_time?: string; // ISO String
-    project_number?: string; // UUID link code
-    product_no?: string; // Real project number from DingTalk
-    unit_price?: number;
-    other_expenses?: number;
-    salesman_name?: string;
-    salesman_contact?: string;
-    technical_support_name?: string;
-    project_type?: string;
-    status?: string;
-    table_status?: string;
-    created_at?: string;
-    updated_at?: string;
-    submitted_at?: string;
-    user_id?: string; // 🟢 Auth User ID
-    sales_dingtalk_id?: string; // 🟢 Sales Dingtalk ID
-}
+// ============================================
+// 订单数据类型 (统一格式)
+// ============================================
 
-export interface DBSample {
-    id?: number;
-    order_id?: number;
-    sequence_no: number;
-    sample_name: string;
-    analysis_name?: string;
-    group_name?: string;
-    detection_or_storage: string;
-    sample_tube_count: number;
-    experiment_description?: string;
-}
-
-export interface DBPairwise {
-    id?: number;
-    order_id?: number;
-    sequence_no: number;
-    treatment_group: string;
-    control_group: string;
-    comparison_scheme?: string;
-}
-
-export interface DBMultiGroup {
-    id?: number;
-    order_id?: number;
-    sequence_no: number;
-    comparison_groups: string[]; // JSONB 自动转数组
-}
-
-// 前端表单使用的类型 (CamelCase)
-export interface OrderFormData {
+export interface OrderData {
     id?: number;
     uuid?: string;
     formInstanceId?: string;
+
+    // 客户信息
     customerUnit?: string;
     customerName?: string;
     department?: string;
     departmentDirector?: string;
     customerPhone?: string;
     customerEmail?: string;
+
+    // 样品信息
     serviceType?: string;
     productLine?: string;
     specialInstructions?: string;
@@ -96,73 +37,104 @@ export interface OrderFormData {
     samplePreprocessing?: string;
     remainingSampleHandling?: string;
     needBioinformaticsAnalysis?: boolean;
+
+    // 运送信息
     shippingMethod?: string;
     expressCompanyWaybill?: string;
     shippingTime?: string;
-    projectNumber?: string; // This is the UUID link code
-    productNo?: string; // Real project number from DingTalk (ProductNo)
+
+    // 项目信息
+    projectNumber?: string;
+    productNo?: string;
     unitPrice?: number;
     otherExpenses?: number;
     salesmanName?: string;
     salesmanContact?: string;
     technicalSupportName?: string;
     projectType?: string;
+
+    // 状态
     status?: string;
     tableStatus?: string;
+    createdAt?: string;
+    updatedAt?: string;
+    submittedAt?: string;
+    userId?: string;
+    salesDingtalkId?: string;
 
     // 子表数据
-    sampleList?: Array<{
-        sampleName?: string;
-        analysisName?: string;
-        groupName?: string;
-        detectionOrStorage?: string;
-        sampleTubeCount?: number;
-        experimentDescription?: string;
-    }>;
-    pairwiseComparison?: Array<{
-        treatmentGroup?: string;
-        controlGroup?: string;
-        comparisonScheme?: string; // Auto-generated
-    }>;
-    multiGroupComparison?: Array<{
-        comparisonGroups?: string[];
-        comparisonName?: string; // Auto-generated
-    }>;
+    sampleList?: SampleItem[];
+    pairwiseComparison?: PairwiseItem[];
+    multiGroupComparison?: MultiGroupItem[];
 }
 
-// 1. 定义钉钉宜搭原始表单数据的接口 (根据 dingtalk.js 中的解析逻辑推断)
-export interface YidaRawFormData {
-    UniqueIdentification?: string; // UUID link code
-    ProductNo?: string; // Real project number from DingTalk
-    CustomerUnit?: string;
-    CustomerName?: string;
-    DepartmentsDepartmentsDepartments?: string;
-    DepartmentDirectorPI?: string;
-    CustomerMobilePhone?: string;
-    CustomerMailbox?: string;
-    ServiceTypeName?: string;
-    ServiceTypeOther?: string;
-    SpecialInstructionsifYourSampleHasSpecialRequirementsPleaseNoteTheInstructions?: string;
-    SpeciesName?: string;
-    SpeciesLatinName?: string;
-    SampleType?: string;
-    SampleTypeDetails?: string;
-    DetectionQuantity?: string | number;
-    CellNumber?: string | number;
-    SaveMedia?: string;
-    SamplePreprocessingMethod?: string;
-    RemainingSampleProcessingMethod?: string;
-    IsBioinformaticsAnalysis?: string | boolean;
-    ModeOfDelivery?: string;
-    ExpressCompanyAndWaybillNumber?: string;
-    SampleDeliveryTime?: string | number; // 可能是时间戳或字符串
-    UnitPriceOfTestingServiceFee?: string | number;
-    OtherExpenses?: string | number;
-    NameOfSalesman?: string;
-    ContactInformationOfSalesman?: string;
-    NameOfTechnicalSupportPersonnel?: string;
-    ProjectType?: string;
-    TableStatus?: string;
-    Remarks?: string;
-    SamplesLink?: string; // 样本数据查看链接
+// ============================================
+// 子表类型
+// ============================================
+
+export interface SampleItem {
+    id?: number;
+    orderId?: number;
+    orderUuid?: string;
+    sequenceNo?: number;
+    sampleName?: string;
+    analysisName?: string;
+    groupName?: string;
+    detectionOrStorage?: string;
+    sampleTubeCount?: number;
+    experimentDescription?: string;
 }
+
+export interface PairwiseItem {
+    id?: number;
+    orderId?: number;
+    orderUuid?: string;
+    sequenceNo?: number;
+    treatmentGroup?: string;
+    controlGroup?: string;
+    comparisonScheme?: string;
+}
+
+export interface MultiGroupItem {
+    id?: number;
+    orderId?: number;
+    orderUuid?: string;
+    sequenceNo?: number;
+    comparisonGroups?: string[];
+}
+
+// ============================================
+// 完整订单 (包含关联数据)
+// ============================================
+
+export interface FullOrderData extends OrderData {
+    sampleList: SampleItem[];
+    pairwiseComparison: PairwiseItem[];
+    multiGroupComparison: MultiGroupItem[];
+}
+
+// ============================================
+// 兼容性别名 (过渡期使用，便于逐步迁移)
+// ============================================
+
+/** @deprecated 使用 OrderData */
+export type OrderFormData = OrderData;
+
+/** @deprecated 使用 OrderData */
+export type DBOrder = OrderData;
+
+/** @deprecated 使用 SampleItem */
+export type DBSample = SampleItem;
+
+/** @deprecated 使用 PairwiseItem */
+export type DBPairwise = PairwiseItem;
+
+/** @deprecated 使用 MultiGroupItem */
+export type DBMultiGroup = MultiGroupItem;
+
+// ============================================
+// 钉钉宜搭原始数据类型 (现在与 OrderData 一致)
+// ============================================
+
+/** @deprecated 现在三端统一，直接使用 OrderData */
+export type YidaRawFormData = Partial<OrderData>;

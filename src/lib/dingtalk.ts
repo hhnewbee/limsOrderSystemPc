@@ -1,8 +1,7 @@
 // File: src/lib/dingtalk.ts
 import axios from 'axios';
-import type { OrderFormData, YidaRawFormData } from '@/types/order';
-// 🟢 引入统一转换器，解决命名风格不一致问题
-import { yidaToApp, appToYida } from '@/lib/converters';
+import type { OrderFormData } from '@/types/order';
+// 🎉 三端统一 camelCase，不再需要转换器
 
 // 钉钉配置接口 (userId removed - must be passed explicitly)
 interface YidaConfig {
@@ -222,29 +221,39 @@ export async function updateFormData(formInstanceId: string, formData: Record<st
 }
 
 // =================================================================
-// 🟢 核心修改：使用 converters 替代手动映射，确保与全局命名规范一致
+// 🎉 三端统一 camelCase，无需字段名转换
 // =================================================================
 
-// 解析钉钉宜搭返回的数据格式 -> 转换为本地 OrderFormData
-export function parseYidaFormData(yidaData: any): OrderFormData | null {
+/**
+ * 解析钉钉宜搭返回的数据
+ * 
+ * 由于钉钉、数据库、代码现在都使用 camelCase，
+ * 直接返回数据，只添加 formInstanceId
+ */
+export function parseYidaFormData(yidaData: any): (OrderFormData & { formInstanceId?: string }) | null {
   if (!yidaData || !yidaData.data || yidaData.data.length === 0) {
     return null;
   }
 
   const instanceData = yidaData.data[0];
-  const formData = instanceData.formData as YidaRawFormData;
+  const formData = instanceData.formData;
   const formInstanceId = instanceData.formInstanceId;
 
-  debugLog('parseYidaFormData - 开始转换', { formInstanceId });
+  debugLog('parseYidaFormData - 解析数据', { formInstanceId });
 
-  // 使用统一的转换器: Yida(Pascal) -> App(Camel)
-  return yidaToApp(formData, formInstanceId);
+  // 直接返回，字段名已统一
+  return {
+    ...formData,
+    formInstanceId
+  };
 }
 
-// 将本地数据格式 OrderFormData -> 转换为钉钉宜搭格式
-export function convertToYidaFormat(localData: Partial<OrderFormData>): YidaRawFormData {
-  debugLog('convertToYidaFormat - 开始转换', localData);
-
-  // 使用统一的转换器: App(Camel) -> Yida(Pascal)
-  return appToYida(localData);
+/**
+ * 将本地数据格式转换为钉钉宜搭格式
+ * 
+ * 由于字段名已统一，直接返回
+ */
+export function convertToYidaFormat(localData: Partial<OrderFormData>): any {
+  debugLog('convertToYidaFormat - 转换数据', localData);
+  return localData;
 }
