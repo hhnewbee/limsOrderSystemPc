@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { Table, Button, Modal, Form, Input, message, Tag, Space, Input as AntInput } from 'antd';
-import { SearchOutlined, LinkOutlined, DisconnectOutlined } from '@ant-design/icons';
+import { SearchOutlined, LinkOutlined, DisconnectOutlined, DeleteOutlined } from '@ant-design/icons';
 import axios from 'axios';
 
 export default function OrderManagementPage() {
@@ -57,6 +57,33 @@ export default function OrderManagementPage() {
         }
     };
 
+    // 🟢 删除订单
+    const handleDelete = async (order: any) => {
+        Modal.confirm({
+            title: '确认删除',
+            content: (
+                <div>
+                    <p>确定要删除订单 <b>{order.project_number}</b> 吗？</p>
+                    <p style={{ color: '#ff4d4f' }}>此操作将删除订单及其所有关联数据（样本清单、比较方案等），且不可恢复！</p>
+                </div>
+            ),
+            okText: '确认删除',
+            okType: 'danger',
+            cancelText: '取消',
+            onOk: async () => {
+                try {
+                    await axios.delete('/api/admin/orders', {
+                        data: { uuid: order.uuid }
+                    });
+                    message.success('订单已删除');
+                    fetchOrders();
+                } catch (error: any) {
+                    message.error('删除失败: ' + (error.response?.data?.error || error.message));
+                }
+            }
+        });
+    };
+
     const columns = [
         { title: '项目编号', dataIndex: 'project_number', key: 'project_number', width: 120 },
         { title: '客户名', dataIndex: 'customer_name', key: 'customer_name', width: 100 },
@@ -77,12 +104,14 @@ export default function OrderManagementPage() {
         {
             title: '操作',
             key: 'action',
+            width: 200,
             render: (_: any, record: any) => (
                 <Space>
                     <Button size="small" icon={<LinkOutlined />} onClick={() => { setSelectedOrder(record); setIsBindOpen(true); }}>绑定</Button>
                     {record.user_id && (
                         <Button size="small" danger icon={<DisconnectOutlined />} onClick={() => handleUnbind(record)}>解绑</Button>
                     )}
+                    <Button size="small" danger icon={<DeleteOutlined />} onClick={() => handleDelete(record)}>删除</Button>
                 </Space>
             )
         }

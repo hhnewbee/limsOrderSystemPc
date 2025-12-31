@@ -77,7 +77,11 @@ function SalesOrderPageInner() {
 
     const redirectToSalesLogin = async () => {
         try {
-            const response = await fetch(`/api/order/${urlUuid}/check-auth-sales`);
+            // 🟢 传递 UD 参数给 check-auth-sales API
+            const checkAuthUrl = udParam
+                ? `/api/order/${urlUuid}/check-auth-sales?UD=${udParam}`
+                : `/api/order/${urlUuid}/check-auth-sales`;
+            const response = await fetch(checkAuthUrl);
             if (response.ok) {
                 const data = await response.json();
                 const returnUrlWithUD = udParam ? `/${urlUuid}/sales?UD=${udParam}` : `/${urlUuid}/sales`;

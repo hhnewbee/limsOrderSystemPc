@@ -39,8 +39,19 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
             salesmanName = order.salesman_name;
         } else {
             // 2. If order not in DB, fetch from DingTalk
+            // 🟢 从 URL 获取 UD 参数
+            const udParam = request.nextUrl.searchParams.get('UD');
+            const dingtalkUserId = udParam ? atob(udParam) : undefined;
+
+            if (!dingtalkUserId) {
+                return NextResponse.json({
+                    error: '无法获取订单信息：缺少 UD 参数',
+                    code: 'MISSING_UD'
+                }, { status: 400 });
+            }
+
             console.log('[check-auth-sales] Order not in DB, fetching from DingTalk...');
-            const yidaData = await searchFormData(uuid);
+            const yidaData = await searchFormData(uuid, dingtalkUserId);
             const parsedData = parseYidaFormData(yidaData);
 
             if (!parsedData) {

@@ -54,9 +54,10 @@ export const ORDER_STATUS = {
 
 // 定义可编辑的状态集合 (用于权限判断)
 export const EDITABLE_STATUSES: string[] = [
-    ORDER_STATUS.CUSTOMER_EDITING,
-    ORDER_STATUS.CUSTOMER_MODIFYING,
-    ORDER_STATUS.DRAFT,
-    ORDER_STATUS.EDITING,
-    ORDER_STATUS.REJECTED_AUDIT // 🔴 Enable editing for audit rejected orders
+    ORDER_STATUS.CUSTOMER_EDITING,    // 客户编辑中
+    ORDER_STATUS.CUSTOMER_MODIFYING,  // 客户修改中
+    ORDER_STATUS.DRAFT,               // 草稿
+    ORDER_STATUS.EDITING,             // 编辑中
+    ORDER_STATUS.REJECTED_AUDIT,      // 审批不通过
+    '客户待编辑'                       // 钉钉默认初始状态
 ];

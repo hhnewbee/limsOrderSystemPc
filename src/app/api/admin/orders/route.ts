@@ -93,3 +93,61 @@ export async function POST(request: NextRequest) {
         return NextResponse.json({ error: error.message }, { status: 500 });
     }
 }
+
+// 🟢 Admin API: Delete Order (Hard Delete)
+export async function DELETE(request: NextRequest) {
+    try {
+        const { uuid } = await request.json();
+
+        if (!uuid) {
+            return NextResponse.json({ error: 'Missing UUID' }, { status: 400 });
+        }
+
+        console.log(`[Admin] 正在删除订单: ${uuid}`);
+
+        // 1. 先删除关联表数据 (由于外键约束，需要先删除子表)
+        const { error: sampleError } = await supabaseAdmin
+            .from('sample_list')
+            .delete()
+            .eq('order_uuid', uuid);
+
+        if (sampleError) {
+            console.error('[Admin] 删除样本清单失败:', sampleError);
+        }
+
+        const { error: pairwiseError } = await supabaseAdmin
+            .from('pairwise_comparison')
+            .delete()
+            .eq('order_uuid', uuid);
+
+        if (pairwiseError) {
+            console.error('[Admin] 删除两组比较失败:', pairwiseError);
+        }
+
+        const { error: multiGroupError } = await supabaseAdmin
+            .from('multi_group_comparison')
+            .delete()
+            .eq('order_uuid', uuid);
+
+        if (multiGroupError) {
+            console.error('[Admin] 删除多组比较失败:', multiGroupError);
+        }
+
+        // 2. 删除订单主表
+        const { error: orderError } = await supabaseAdmin
+            .from('orders')
+            .delete()
+            .eq('uuid', uuid);
+
+        if (orderError) {
+            throw new Error(`删除订单失败: ${orderError.message}`);
+        }
+
+        console.log(`[Admin] 订单 ${uuid} 已删除`);
+        return NextResponse.json({ success: true, message: '订单已删除' });
+
+    } catch (error: any) {
+        console.error('[Admin] 删除订单错误:', error);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+}
