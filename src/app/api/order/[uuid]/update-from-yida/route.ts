@@ -32,7 +32,7 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
 
     // 🟢 智能判断数据源格式
     // 检查是否包含典型的宜搭字段 (PascalCase)
-    const isYidaFormat = 'CustomerUnit' in body || 'UniqueIdentification' in body || 'TableStatus' in body;
+    const isYidaFormat = 'customerUnit' in body || 'uniqueIdentification' in body || 'tableStatus' in body;
 
     if (isYidaFormat) {
       console.log('[API-YidaSync] 识别为宜搭原始格式 (PascalCase)，正在转换...');

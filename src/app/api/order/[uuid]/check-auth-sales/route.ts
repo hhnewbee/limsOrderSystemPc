@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { supabaseAdmin } from '@/lib/supabase-admin';
 import { decrypt } from '@/lib/crypto';
 import { searchFormData, parseYidaFormData } from '@/lib/dingtalk';
+import { QUERY_COLUMNS } from '@/schema/fields';
 
 interface RouteParams {
     params: Promise<{ uuid: string }>;
@@ -24,10 +25,10 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { uuid } = await params;
 
     try {
-        // 1. Check if order exists in DB
+        // 1. Check if order exists in DB (using schema-defined columns)
         const { data: order } = await supabase
             .from('orders')
-            .select('uuid, salesman_contact, salesman_name')
+            .select(QUERY_COLUMNS.AUTH_CHECK_SALES)
             .eq('uuid', uuid)
             .maybeSingle();
 
@@ -35,8 +36,8 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         let salesmanName: string | null = null;
 
         if (order) {
-            salesmanPhone = order.salesman_contact;
-            salesmanName = order.salesman_name;
+            salesmanPhone = order.salesmanContact;
+            salesmanName = order.salesmanName;
         } else {
             // 2. If order not in DB, fetch from DingTalk
             // 🟢 从 URL 获取 UD 参数

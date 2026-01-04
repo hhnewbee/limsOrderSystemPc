@@ -25,7 +25,16 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
     const { uuid } = await params;
 
     // 🟢 提取 DingTalk userId (用于从钉钉获取订单数据)
-    const dingtalkUserId = request.headers.get('X-DingTalk-UserId') || undefined;
+    const rawDingtalkHeader = request.headers.get('X-DingTalk-UserId');
+    const dingtalkUserId = rawDingtalkHeader && rawDingtalkHeader.trim() !== '' ? rawDingtalkHeader : undefined;
+
+    // 🔍 Debug logging
+    console.log('[check-auth] Request received:', {
+        uuid,
+        rawDingtalkHeader,
+        dingtalkUserId,
+        url: request.url
+    });
 
     // 1. Validate Sales Token (optional)
     const salesToken = request.nextUrl.searchParams.get('s_token');
@@ -61,12 +70,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
         } else {
             // 3. If order not in DB, fetch from DingTalk to get customer phone
             console.log('[check-auth] Order not in DB, fetching from DingTalk...');
+
+            // 🟢 Check if we have dingtalkUserId before calling DingTalk API
+            if (!dingtalkUserId) {
+                console.warn('[check-auth] Order not in DB and no UD parameter provided');
+                return NextResponse.json({
+                    error: '订单未找到，请通过钉钉链接访问订单',
+                    code: 'MISSING_UD_PARAM'
+                }, { status: 400 });
+            }
+
             const yidaData = await searchFormData(uuid, dingtalkUserId);
             const parsedData = parseYidaFormData(yidaData);
-
-            // 🔍 调试: 打印钉钉返回的数据，看看字段名
-            console.log('[check-auth] DingTalk parsedData keys:', parsedData ? Object.keys(parsedData) : 'null');
-            console.log('[check-auth] customerPhone field:', parsedData?.customerPhone);
 
             if (!parsedData) {
                 return NextResponse.json({ error: '订单不存在' }, { status: 404 });

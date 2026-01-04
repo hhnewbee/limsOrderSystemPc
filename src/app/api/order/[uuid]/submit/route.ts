@@ -3,9 +3,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { supabase } from '@/lib/supabase';
 import { updateFormData, convertToYidaFormat } from '@/lib/dingtalk';
 import { updateOrderInDb } from '@/lib/orderService';
-import { decrypt } from '@/lib/crypto'; // 🟢
+import { decrypt } from '@/lib/crypto';
 import type { OrderFormData } from '@/types/order';
 import { randomBytes } from 'crypto';
+import { selectColumns } from '@/schema/fields';
 
 interface RouteParams {
   params: Promise<{ uuid: string }>;
@@ -44,10 +45,11 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       console.log(`[Submit] Using DingTalk User ID: ${dingtalkUserId}`);
     }
 
-    // 1. 预检订单状态
+    // 1. 预检订单状态 (使用 schema 定义的列名)
+    const submitColumns = selectColumns(['id', 'formInstanceId', 'status', 'tableStatus']);
     const { data: order, error } = await supabase
       .from('orders')
-      .select('id, form_instance_id, status, table_status, samples_view_token')
+      .select(submitColumns + ', "samplesViewToken"')
       .eq('uuid', uuid)
       .single();
 
@@ -55,40 +57,39 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: '订单不存在' }, { status: 404 });
     }
 
-    // 允许重新提交的条件：虽然 status='submitted'，但 table_status 是驳回态
-    const isRejected = ['驳回', '客户修改中', '审批不通过'].includes(order.table_status || '');
+    // 允许重新提交的条件：虽然 status='submitted'，但 tableStatus 是驳回态
+    const isRejected = ['驳回', '客户修改中', '审批不通过'].includes((order as any).tableStatus || '');
 
     if (order.status === 'submitted' && !isRejected) {
       return NextResponse.json({ error: '订单已提交，不能重复提交' }, { status: 400 });
     }
 
     // 2. Generate samples view token if not exists
-    let samplesViewToken = order.samples_view_token;
+    let samplesViewToken = (order as any).samplesViewToken;
     if (!samplesViewToken) {
       samplesViewToken = generateSamplesToken();
-      console.log(`[Submit] Generated samples_view_token: ${samplesViewToken}`);
+      console.log(`[Submit] Generated samplesViewToken: ${samplesViewToken}`);
     }
 
     // Build samples link URL (using /v/ prefix to avoid route conflicts)
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
     const samplesLink = `${baseUrl}/${uuid}/v/${samplesViewToken}`;
 
-    // 3. 更新数据库 (设置 status='submitted' 和 samples_view_token)
+    // 3. 更新数据库 (设置 status='submitted' 和 samplesViewToken)
     await updateOrderInDb(uuid, data, { isSubmit: true });
 
-    // Update samples_view_token separately if newly generated
-    if (!order.samples_view_token) {
+    // Update samplesViewToken separately if newly generated
+    if (!(order as any).samplesViewToken) {
       await supabase
         .from('orders')
-        .update({ samples_view_token: samplesViewToken })
+        .update({ samplesViewToken: samplesViewToken })
         .eq('uuid', uuid);
     }
 
     // 4. 提交到钉钉宜搭 (userId 验证由 dingtalk.ts 函数统一处理)
     const tableStatus = '客户已提交';
-    if (order.form_instance_id) {
+    if ((order as any).formInstanceId) {
       try {
-        // 需要确保你的 convertToYidaFormat 也支持 TS 类型的入参，或转为 any
         // 🟢 Include tableStatus in data so DingTalk gets updated status
         const yidaData = convertToYidaFormat({
           ...data,
@@ -98,10 +99,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
         // Add SamplesLink to yidaData
         yidaData.SamplesLink = samplesLink;
 
-        console.log('[API] 准备提交到钉钉:', { formInstanceId: order.form_instance_id, samplesLink, tableStatus });
+        console.log('[API] 准备提交到钉钉:', { formInstanceId: (order as any).formInstanceId, samplesLink, tableStatus });
 
         // 🟢 Pass the effective user ID (dingtalkUserId or salesToken operatorId)
-        await updateFormData(order.form_instance_id, yidaData, effectiveUserId);
+        await updateFormData((order as any).formInstanceId, yidaData, effectiveUserId);
 
       } catch (yidaError: any) {
         console.error('[API] 钉钉同步警告:', yidaError.message);
@@ -112,10 +113,10 @@ export async function POST(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // 5. 更新 table_status
+    // 5. 更新 tableStatus
     await supabase
       .from('orders')
-      .update({ table_status: tableStatus })
+      .update({ tableStatus: tableStatus })
       .eq('uuid', uuid);
 
     return NextResponse.json({

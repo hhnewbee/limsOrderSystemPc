@@ -3,7 +3,9 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 
 /**
  * API to get sample data for an order using a view token
- * Token must match the samples_view_token in the orders table
+ * Token must match the samplesViewToken in the orders table
+ * 
+ * 🎉 使用 camelCase 列名
  */
 export async function GET(
     request: NextRequest,
@@ -12,21 +14,21 @@ export async function GET(
     const { uuid, token } = await params;
 
     try {
-        // Validate token and get order data
+        // Validate token and get order data (camelCase columns)
         const { data: order, error } = await supabaseAdmin
             .from('orders')
             .select(`
                 uuid,
-                project_number,
-                service_type,
+                "projectNumber",
+                "serviceType",
                 status,
-                need_bioinformatics_analysis,
-                samples_view_token,
-                created_at,
-                updated_at,
-                sample_list(*),
-                pairwise_comparison(*),
-                multi_group_comparison(*)
+                "needBioinformaticsAnalysis",
+                "samplesViewToken",
+                "createdAt",
+                "updatedAt",
+                sampleList:sample_list(*),
+                pairwiseComparison:pairwise_comparison(*),
+                multiGroupComparison:multi_group_comparison(*)
             `)
             .eq('uuid', uuid)
             .maybeSingle();
@@ -41,23 +43,23 @@ export async function GET(
         }
 
         // Validate token
-        if (!order.samples_view_token || order.samples_view_token !== token) {
+        if (!order.samplesViewToken || order.samplesViewToken !== token) {
             return NextResponse.json({ error: '链接无效或已过期' }, { status: 403 });
         }
 
-        console.log('[Samples View API] Token validated, sample count:', order.sample_list?.length || 0);
+        console.log('[Samples View API] Token validated, sample count:', order.sampleList?.length || 0);
 
         return NextResponse.json({
             uuid: order.uuid,
-            projectNumber: order.project_number,
-            serviceType: order.service_type,
+            projectNumber: order.projectNumber,
+            serviceType: order.serviceType,
             status: order.status,
-            sampleList: order.sample_list || [],
-            pairwiseComparison: order.pairwise_comparison || [],
-            multiGroupComparison: order.multi_group_comparison || [],
-            needBioinformaticsAnalysis: order.need_bioinformatics_analysis,
-            createdAt: order.created_at,
-            updatedAt: order.updated_at
+            sampleList: order.sampleList || [],
+            pairwiseComparison: order.pairwiseComparison || [],
+            multiGroupComparison: order.multiGroupComparison || [],
+            needBioinformaticsAnalysis: order.needBioinformaticsAnalysis,
+            createdAt: order.createdAt,
+            updatedAt: order.updatedAt
         });
 
     } catch (error: any) {

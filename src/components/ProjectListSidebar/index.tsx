@@ -11,15 +11,15 @@ import styles from './ProjectListSidebar.module.scss';
 interface OrderItem {
     id: number;
     uuid: string;
-    project_number: string; // UUID link code
-    product_no: string; // Real project number from DingTalk
-    customer_name: string;
-    customer_unit: string;
-    service_type: string;
+    projectNumber: string; // UUID link code
+    productNo: string; // Real project number from DingTalk
+    customerName: string;
+    customerUnit: string;
+    serviceType: string;
     status: string;
-    table_status: string;
-    created_at: string;
-    updated_at: string;
+    tableStatus: string;
+    createdAt: string;
+    updatedAt: string;
 }
 
 export default function ProjectListSidebar() {
@@ -117,14 +117,14 @@ export default function ProjectListSidebar() {
                         >
                             <div className={styles.projectNumber}>
                                 <FileTextOutlined />
-                                {order.product_no || order.project_number || '待生成'}
+                                {order.productNo || order.projectNumber || '待生成'}
                             </div>
                             <div className={styles.customerName}>
-                                {order.customer_name} · {order.service_type || '多肽测序'}
+                                {order.customerName} · {order.serviceType || '多肽测序'}
                             </div>
                             <div className={styles.meta}>
-                                <span>{formatDate(order.updated_at)}</span>
-                                {getStatusTag(order.status, order.table_status)}
+                                <span>{formatDate(order.updatedAt)}</span>
+                                {getStatusTag(order.status, order.tableStatus)}
                             </div>
                         </div>
                     ))

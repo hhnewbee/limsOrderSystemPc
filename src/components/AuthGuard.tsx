@@ -29,7 +29,18 @@ export default function AuthGuard({ children }: AuthGuardProps) {
 
         // 🟢 Extract DingTalk userId from UD parameter (Base64 encoded)
         const udParam = searchParams.get('UD');
-        const dingtalkUserId = udParam ? atob(udParam) : undefined;
+        let dingtalkUserId: string | undefined = undefined;
+
+        if (udParam) {
+            try {
+                dingtalkUserId = atob(udParam);
+                console.log('[AuthGuard] Decoded UD parameter:', { udParam, dingtalkUserId });
+            } catch (e) {
+                console.error('[AuthGuard] Failed to decode UD parameter:', udParam, e);
+            }
+        } else {
+            console.log('[AuthGuard] No UD parameter in URL');
+        }
 
         // 1. Check if user is already logged in
         const { data: { session } } = await supabase.auth.getSession();
@@ -112,7 +123,24 @@ export default function AuthGuard({ children }: AuthGuardProps) {
                     router.replace(`${baseUrl}?${params.toString()}`);
                     return;
                 } else {
-                    console.error('[AuthGuard] Order auth check failed:', await response.text());
+                    // 🟢 Parse error response to get more details
+                    let errorData;
+                    try {
+                        errorData = await response.json();
+                    } catch {
+                        errorData = { error: 'Unknown error' };
+                    }
+
+                    console.error('[AuthGuard] Order auth check failed:', JSON.stringify(errorData));
+
+                    // 🟢 Handle specific error: order not in DB and no UD param
+                    if (response.status === 400 && errorData.code === 'MISSING_UD_PARAM') {
+                        // Redirect to login with error message
+                        const searchStr = searchParams.toString();
+                        const currentPath = pathname + (searchStr ? '?' + searchStr : '');
+                        router.replace(`/login?returnUrl=${encodeURIComponent(currentPath)}&error=请通过钉钉链接访问订单`);
+                        return;
+                    }
                 }
             } catch (error) {
                 console.error('[AuthGuard] Error checking order auth:', error);

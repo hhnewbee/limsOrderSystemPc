@@ -5,6 +5,8 @@ import { supabaseAdmin } from '@/lib/supabase-admin';
 /**
  * API for lab staff to list all samples from orders
  * Only accessible by users with 'lab' or 'admin' role
+ * 
+ * 🎉 使用 camelCase 列名
  */
 export async function GET(request: NextRequest) {
     const authHeader = request.headers.get('Authorization');
@@ -33,33 +35,31 @@ export async function GET(request: NextRequest) {
         const pageSize = parseInt(searchParams.get('pageSize') || '50');
         const search = searchParams.get('search') || '';
 
-        // Query orders with sample_list
+        // Query orders with sampleList (camelCase columns)
         let query = supabaseAdmin
             .from('orders')
             .select(`
                 uuid,
-                project_number,
-                customer_name,
-                salesman_name,
-                service_type,
+                "projectNumber",
+                "customerName",
+                "salesmanName",
+                "serviceType",
                 status,
-                sample_list,
-                created_at,
-                updated_at
+                "createdAt",
+                "updatedAt",
+                sampleList:sample_list(*)
             `)
-            .not('sample_list', 'is', null)
-            .order('updated_at', { ascending: false });
+            .order('updatedAt', { ascending: false });
 
         // Apply search filter
         if (search) {
-            query = query.or(`project_number.ilike.%${search}%,customer_name.ilike.%${search}%`);
+            query = query.or(`projectNumber.ilike.%${search}%,customerName.ilike.%${search}%`);
         }
 
         // Get total count first
         const { count } = await supabaseAdmin
             .from('orders')
-            .select('uuid', { count: 'exact', head: true })
-            .not('sample_list', 'is', null);
+            .select('uuid', { count: 'exact', head: true });
 
         // Apply pagination
         const from = (page - 1) * pageSize;
@@ -76,24 +76,24 @@ export async function GET(request: NextRequest) {
         // Transform orders to sample list format
         const samples: any[] = [];
         orders?.forEach((order: any) => {
-            const sampleList = order.sample_list || [];
+            const sampleList = order.sampleList || [];
             sampleList.forEach((sample: any, index: number) => {
                 samples.push({
                     id: `${order.uuid}-${index}`,
                     orderUuid: order.uuid,
-                    projectNumber: order.project_number,
-                    customerName: order.customer_name,
-                    salesmanName: order.salesman_name,
-                    serviceType: order.service_type,
+                    projectNumber: order.projectNumber,
+                    customerName: order.customerName,
+                    salesmanName: order.salesmanName,
+                    serviceType: order.serviceType,
                     orderStatus: order.status,
                     sampleName: sample.sampleName,
                     analysisName: sample.analysisName,
                     groupName: sample.groupName,
                     detectionOrStorage: sample.detectionOrStorage,
-                    sampleCount: sample.sampleCount,
-                    remarks: sample.remarks,
-                    orderCreatedAt: order.created_at,
-                    orderUpdatedAt: order.updated_at
+                    sampleCount: sample.sampleTubeCount,
+                    remarks: sample.experimentDescription,
+                    orderCreatedAt: order.createdAt,
+                    orderUpdatedAt: order.updatedAt
                 });
             });
         });

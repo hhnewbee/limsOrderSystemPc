@@ -106,3 +106,70 @@ export type SampleFieldKey = keyof typeof SAMPLE_LIST_FIELDS;
 
 /** 获取所有字段名数组 */
 export const ORDER_FIELD_KEYS = Object.keys(ORDER_FIELDS) as OrderFieldKey[];
+
+// ============================================
+// SQL 查询工具函数
+// ============================================
+
+/**
+ * 生成 Supabase select 语句所需的列名
+ * 由于使用 camelCase，需要用双引号包裹
+ * 
+ * @example
+ * selectColumns(['uuid', 'customerName', 'tableStatus'])
+ * // => 'uuid, "customerName", "tableStatus"'
+ */
+export function selectColumns(fields: OrderFieldKey[]): string {
+    return fields.map(field => {
+        // 系统字段不需要引号 (id, uuid, status)
+        const noQuoteFields = ['id', 'uuid', 'status'];
+        if (noQuoteFields.includes(field)) {
+            return field;
+        }
+        return `"${field}"`;
+    }).join(', ');
+}
+
+/**
+ * 常用的查询列组合
+ */
+export const QUERY_COLUMNS = {
+    /** 订单列表基础信息 */
+    ORDER_LIST: selectColumns([
+        'id', 'uuid', 'projectNumber', 'productNo',
+        'customerName', 'customerUnit', 'serviceType',
+        'status', 'tableStatus', 'createdAt', 'updatedAt'
+    ]),
+
+    /** 客户认证检查所需字段 */
+    AUTH_CHECK: selectColumns([
+        'uuid', 'userId', 'customerPhone', 'customerName'
+    ]),
+
+    /** 销售认证检查所需字段 */
+    AUTH_CHECK_SALES: selectColumns([
+        'uuid', 'salesmanContact', 'salesmanName'
+    ]),
+
+    /** 订单提交相关字段 */
+    SUBMIT: selectColumns([
+        'id', 'formInstanceId', 'status', 'tableStatus'
+    ])
+} as const;
+
+/**
+ * 验证字段名是否有效
+ * 用于运行时检查，防止拼写错误
+ */
+export function validateFieldName(field: string): field is OrderFieldKey {
+    return field in ORDER_FIELDS;
+}
+
+/**
+ * 断言字段名有效，无效时抛出错误
+ */
+export function assertValidField(field: string): asserts field is OrderFieldKey {
+    if (!validateFieldName(field)) {
+        throw new Error(`Invalid field name: "${field}". Valid fields: ${ORDER_FIELD_KEYS.join(', ')}`);
+    }
+}
