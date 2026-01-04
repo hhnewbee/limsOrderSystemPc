@@ -1,6 +1,18 @@
 // File: src/lib/orderService.ts
+/**
+ * 订单数据库操作服务
+ * 
+ * 使用统一字段 Schema 自动生成 DB 字段名
+ * 📌 新增字段只需修改 schema/fields.ts
+ */
 import { supabase } from '@/lib/supabase';
 import type { OrderFormData } from '@/types/order';
+import {
+  ORDER_FIELDS,
+  SAMPLE_LIST_FIELDS,
+  SAMPLE_APP_TO_DB,
+  convertAppToDb
+} from '@/schema/fields';
 
 export function formatDateTimeForPostgres(dateString?: string | null): string | null {
   if (!dateString) return null;
@@ -15,6 +27,7 @@ interface UpdateOptions {
 
 /**
  * 核心数据库更新函数
+ * 使用 schema 自动映射字段名
  */
 export async function updateOrderInDb(
   uuid: string,
@@ -23,25 +36,28 @@ export async function updateOrderInDb(
 ): Promise<number> {
   const { isSubmit = false } = options;
 
-  // 1. 准备主表更新数据
-  // 使用 Record<string, any> 是为了适配 Supabase 的 update 方法类型
-  const updatePayload: Record<string, any> = {
-    special_instructions: data.specialInstructions || null,
-    species_name: data.speciesName || null,
-    species_latin_name: data.speciesLatinName || null,
-    sample_type: data.sampleType || null,
-    sample_type_detail: data.sampleTypeDetail || null,
-    detection_quantity: data.detectionQuantity || null,
-    cell_count: data.cellCount || null,
-    preservation_medium: data.preservationMedium || null,
-    sample_preprocessing: data.samplePreprocessing || null,
-    remaining_sample_handling: data.remainingSampleHandling || null,
-    need_bioinformatics_analysis: data.needBioinformaticsAnalysis ? true : false,
-    shipping_method: data.shippingMethod || null,
-    express_company_waybill: data.expressCompanyWaybill || null,
-    shipping_time: formatDateTimeForPostgres(data.shippingTime),
-    updated_at: new Date().toISOString()
+  // 1. 使用 schema 自动生成更新数据
+  // 只更新用户可编辑的字段
+  const editableFields: Partial<OrderFormData> = {
+    specialInstructions: data.specialInstructions || null,
+    speciesName: data.speciesName || null,
+    speciesLatinName: data.speciesLatinName || null,
+    sampleType: data.sampleType || null,
+    sampleTypeDetail: data.sampleTypeDetail || null,
+    detectionQuantity: data.detectionQuantity || null,
+    cellCount: data.cellCount || null,
+    preservationMedium: data.preservationMedium || null,
+    samplePreprocessing: data.samplePreprocessing || null,
+    remainingSampleHandling: data.remainingSampleHandling || null,
+    needBioinformaticsAnalysis: data.needBioinformaticsAnalysis ? true : false,
+    shippingMethod: data.shippingMethod || null,
+    expressCompanyWaybill: data.expressCompanyWaybill || null,
+    shippingTime: data.shippingTime ? formatDateTimeForPostgres(data.shippingTime) : null,
   };
+
+  // 使用 schema 自动转换为 DB 格式
+  const updatePayload = convertAppToDb(editableFields);
+  updatePayload.updated_at = new Date().toISOString();
 
   if (isSubmit) {
     updatePayload.status = 'submitted';
@@ -70,12 +86,13 @@ export async function updateOrderInDb(
     const sampleRows = data.sampleList.map((sample, index) => ({
       order_id: orderId,
       sequence_no: index + 1,
-      sample_name: sample.sampleName || '',
-      analysis_name: sample.analysisName || null,
-      group_name: sample.groupName || null,
-      detection_or_storage: sample.detectionOrStorage || '检测',
-      sample_tube_count: sample.sampleTubeCount || 1,
-      experiment_description: sample.experimentDescription || null
+      // 使用 schema 的 DB 字段名
+      [SAMPLE_LIST_FIELDS.sampleName.db]: sample.sampleName || '',
+      [SAMPLE_LIST_FIELDS.analysisName.db]: sample.analysisName || null,
+      [SAMPLE_LIST_FIELDS.groupName.db]: sample.groupName || null,
+      [SAMPLE_LIST_FIELDS.detectionOrStorage.db]: sample.detectionOrStorage || '检测',
+      [SAMPLE_LIST_FIELDS.sampleTubeCount.db]: sample.sampleTubeCount || 1,
+      [SAMPLE_LIST_FIELDS.experimentDescription.db]: sample.experimentDescription || null
     }));
 
     const { error: sampleError } = await supabase.from('sample_list').insert(sampleRows);
