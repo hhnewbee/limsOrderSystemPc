@@ -63,7 +63,7 @@ export default function SampleInfoModule({ data, onBlur, onChange, disabled, err
                             value={data.detectionQuantity}
                             onChange={(value) => onChange('detectionQuantity', value)}
                             onBlur={() => onBlur('detectionQuantity')}
-                            disabled={disabled}
+                            disabled={true} // 🔒 仅限从钉钉同步，不可手动修改
                             min={1}
                             style={{ width: '100%' }}
                             placeholder="请输入检测数量"

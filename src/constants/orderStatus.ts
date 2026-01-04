@@ -8,6 +8,7 @@ export const ORDER_STATUS = {
     DRAFT: '草稿',
     EDITING: '编辑中',
     CUSTOMER_EDITING: '客户编辑中',
+    CUSTOMER_WAITING_EDIT: '客户待编辑', // 🟡 New status
 
     // --- 异常/修改阶段 ---
     CUSTOMER_MODIFYING: '客户修改中', // 通常指被驳回后的状态
@@ -33,6 +34,7 @@ export const ORDER_STATUS = {
     TESTING: '检测中',
     TESTING_COMPLETED: '检测完成',
 
+    // --- 生信分析阶段 --- (Separate from lab testing if needed)
     ANALYSIS_PENDING: '待分析',
     START_ANALYSIS: '开始分析',
     ANALYSIS: '分析中',
@@ -55,8 +57,9 @@ export const ORDER_STATUS = {
 // 定义可编辑的状态集合 (用于权限判断)
 export const EDITABLE_STATUSES: string[] = [
     ORDER_STATUS.CUSTOMER_EDITING,
+    ORDER_STATUS.CUSTOMER_WAITING_EDIT, // 🟡 Added here
     ORDER_STATUS.CUSTOMER_MODIFYING,
     ORDER_STATUS.DRAFT,
     ORDER_STATUS.EDITING,
-    ORDER_STATUS.REJECTED_AUDIT // 🔴 Enable editing for audit rejected orders
+    ORDER_STATUS.REJECTED_AUDIT
 ];
