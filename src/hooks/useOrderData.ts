@@ -4,10 +4,9 @@
  * 负责订单数据的获取和更新
  */
 import { useState, useEffect, useCallback, useRef } from 'react';
-import axios from 'axios';
 import type { OrderFormData } from '@/types/order';
 import { validateOrderForm, ValidationErrors } from '@/utils/validation';
-import { supabase } from '@/lib/supabase';
+import { orderApi } from '@/lib/api';
 
 export interface UseOrderDataResult {
     loading: boolean;
@@ -57,20 +56,13 @@ export function useOrderData(
 
         try {
             setLoading(true);
-            const { data: { session } } = await supabase.auth.getSession();
-            const token = session?.access_token;
-
-            const response = await axios.get<OrderFormData>(`/api/order/${uuid}`, {
-                headers: {
-                    Authorization: token ? `Bearer ${token}` : undefined,
-                    'X-DingTalk-UserId': dingtalkUserId
-                },
-                params: {
-                    s_token: salesToken
-                }
+            // 使用统一的 API 客户端
+            const data = await orderApi.getOrder(uuid, {
+                salesToken: salesToken || undefined,
+                dingtalkUserId
             });
-            setOrderData(response.data);
-            initialDataRef.current = JSON.stringify(response.data);
+            setOrderData(data);
+            initialDataRef.current = JSON.stringify(data);
         } catch (error) {
             console.error('Failed to load order:', error);
             onError('加载订单数据失败');

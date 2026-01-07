@@ -4,24 +4,10 @@
  * 负责订单的保存和提交操作
  */
 import { useState, useCallback } from 'react';
-import axios from 'axios';
 import type { OrderFormData } from '@/types/order';
 import { ORDER_STATUS } from '@/constants/orderStatus';
-import { validateOrderForm, ValidationErrors } from '@/utils/validation';
-
-// 字段名称映射 (用于错误提示)
-const FIELD_NAME_MAP: Record<string, string> = {
-    speciesName: '物种名称',
-    speciesLatinName: '物种拉丁名',
-    sampleType: '样本类型',
-    sampleTypeDetail: '样本类型详述',
-    remainingSampleHandling: '剩余样品处理方式',
-    detectionQuantity: '检测数量',
-    shippingMethod: '运送方式',
-    expressCompanyWaybill: '快递公司及运单号',
-    shippingTime: '送样时间',
-    sampleList: '样本清单'
-};
+import { validateOrderForm, ValidationErrors, getErrorFieldNames } from '@/utils/validation';
+import { orderApi } from '@/lib/api';
 
 export interface UseOrderActionsProps {
     uuid: string;
@@ -62,7 +48,7 @@ export function useOrderActions({
 
         try {
             setSaving(true);
-            await axios.post(`/api/order/${uuid}/save`, orderData);
+            await orderApi.saveOrder(uuid, orderData);
             message.success('暂存成功');
             resetUnsavedChanges();
         } catch (error) {
@@ -83,10 +69,8 @@ export function useOrderActions({
         if (Object.keys(newErrors).length > 0) {
             setErrors(newErrors);
 
-            // Build error message
-            const errorFields = Object.keys(newErrors)
-                .filter(key => key !== 'sampleList')
-                .map(key => FIELD_NAME_MAP[key] || key);
+            // 使用统一的 getErrorFieldNames 获取错误字段名称
+            const errorFields = getErrorFieldNames(newErrors);
 
             if (newErrors.sampleList) {
                 const errorRowCount = Object.keys(newErrors.sampleList).length;
@@ -110,10 +94,9 @@ export function useOrderActions({
             onOk: async () => {
                 try {
                     setSubmitting(true);
-                    const response = await axios.post(`/api/order/${uuid}/submit`, {
-                        ...orderData,
-                        _salesToken: salesToken,
-                        _dingtalkUserId: dingtalkUserId
+                    const response = await orderApi.submitOrder(uuid, orderData, {
+                        salesToken: salesToken || undefined,
+                        dingtalkUserId
                     });
 
                     message.success('提交成功');
@@ -123,14 +106,14 @@ export function useOrderActions({
                         return {
                             ...prev,
                             status: ORDER_STATUS.SUBMITTED,
-                            tableStatus: response.data.tableStatus || prev.tableStatus
+                            tableStatus: response.tableStatus || prev.tableStatus
                         };
                     });
                     resetUnsavedChanges();
                     setErrors({});
                 } catch (error: any) {
                     console.error('[Submit] Failed:', error);
-                    const errorMessage = error.response?.data?.error || error.message || '提交失败';
+                    const errorMessage = error.message || '提交失败';
                     message.error(errorMessage);
                 } finally {
                     setSubmitting(false);

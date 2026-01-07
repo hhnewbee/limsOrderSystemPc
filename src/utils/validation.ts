@@ -3,9 +3,49 @@
  * 订单表单验证
  * 
  * 📌 必填字段从 schema 读取，无需硬编码
+ * 📌 提供单字段验证函数供实时验证使用
  */
 import type { OrderFormData } from '@/types/order';
-import { ORDER_FIELDS, FIELD_LABELS, getFieldLabel } from '@/schema/fields';
+import { ORDER_FIELDS, getFieldLabel } from '@/schema/fields';
+
+// ============================================
+// 单字段验证函数（可复用）
+// ============================================
+
+/**
+ * 验证样本名称格式
+ * @returns 错误消息，无错误则返回 null
+ */
+export function validateSampleName(value: string | undefined | null): string | null {
+    if (!value) return null; // 空值由必填校验处理
+
+    if (/[\u4e00-\u9fa5]/.test(value)) {
+        return '不能包含中文字符';
+    }
+    if (/[￥$&@%]/.test(value)) {
+        return '不能包含特殊字符';
+    }
+    if (value.length > 10) {
+        return '长度不能超过10个字符';
+    }
+    return null;
+}
+
+/**
+ * 验证分析名称/分组名称格式
+ * @returns 错误消息，无错误则返回 null
+ */
+export function validateAnalysisOrGroupName(value: string | undefined | null): string | null {
+    if (!value) return null; // 空值由必填校验处理
+
+    if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(value)) {
+        return '格式不正确(仅限字母数字下划线)';
+    }
+    if (value.length > 8) {
+        return '长度不能超过8个字符';
+    }
+    return null;
+}
 
 // ============================================
 // 类型定义
@@ -132,16 +172,13 @@ export const validateOrderForm = (data: OrderFormData, options: ValidationOption
             } else {
                 if (sampleNames.has(sample.sampleName)) {
                     rowErrors.sampleName = '样本名称重复';
+                } else {
+                    const formatError = validateSampleName(sample.sampleName);
+                    if (formatError) {
+                        rowErrors.sampleName = formatError;
+                    }
                 }
                 sampleNames.add(sample.sampleName);
-
-                if (/[\u4e00-\u9fa5]/.test(sample.sampleName)) {
-                    rowErrors.sampleName = '不能包含中文字符';
-                } else if (/[￥$&@%]/.test(sample.sampleName)) {
-                    rowErrors.sampleName = '不能包含特殊字符';
-                } else if (sample.sampleName.length > 10) {
-                    rowErrors.sampleName = '长度不能超过10个字符';
-                }
             }
 
             // 生信分析相关
@@ -156,14 +193,13 @@ export const validateOrderForm = (data: OrderFormData, options: ValidationOption
                 } else {
                     if (analysisNames.has(sample.analysisName)) {
                         rowErrors.analysisName = '分析名称重复';
+                    } else {
+                        const formatError = validateAnalysisOrGroupName(sample.analysisName);
+                        if (formatError) {
+                            rowErrors.analysisName = formatError;
+                        }
                     }
                     analysisNames.add(sample.analysisName);
-
-                    if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(sample.analysisName)) {
-                        rowErrors.analysisName = '格式不正确(仅限字母数字下划线)';
-                    } else if (sample.analysisName.length > 8) {
-                        rowErrors.analysisName = '长度不能超过8个字符';
-                    }
                 }
 
                 // 分组名称
@@ -172,10 +208,9 @@ export const validateOrderForm = (data: OrderFormData, options: ValidationOption
                         rowErrors.groupName = '分组名称不能为空';
                     }
                 } else {
-                    if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(sample.groupName)) {
-                        rowErrors.groupName = '格式不正确(仅限字母数字下划线)';
-                    } else if (sample.groupName.length > 8) {
-                        rowErrors.groupName = '长度不能超过8个字符';
+                    const formatError = validateAnalysisOrGroupName(sample.groupName);
+                    if (formatError) {
+                        rowErrors.groupName = formatError;
                     }
                 }
             }

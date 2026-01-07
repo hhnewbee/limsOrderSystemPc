@@ -37,6 +37,7 @@ import BatchAddModal from './BatchAddModal';
 import styles from './SampleListTable.module.scss';
 import { SampleItem, SampleListTableProps } from './types';
 import { exportToExcel, importFromExcel } from './utils';
+import { validateSampleName, validateAnalysisOrGroupName } from '@/utils/validation';
 
 // Re-export types for external use
 export type { SampleItem } from './types';
@@ -498,27 +499,15 @@ const AgSampleListTable = ({ data, onChange, onBlur, disabled, needBioinformatic
             const rowData = rowNode?.data;
             const currentValue = rowData?.[currentColumnId] || '';
 
-            // Inline validation for current cell - check for format errors
+            // Use unified validation functions from @/utils/validation
             let hasFormatError = false;
 
             if (currentColumnId === 'sampleName' && currentValue) {
-                // Check for Chinese characters or special characters
-                if (/[\u4e00-\u9fa5]/.test(currentValue)) {
-                    hasFormatError = true;
-                } else if (/[￥$&@%]/.test(currentValue)) {
-                    hasFormatError = true;
-                } else if (currentValue.length > 10) {
-                    hasFormatError = true;
-                }
+                hasFormatError = validateSampleName(currentValue) !== null;
             }
 
             if ((currentColumnId === 'analysisName' || currentColumnId === 'groupName') && currentValue) {
-                // Check format: must start with letter, only alphanumeric and underscore
-                if (!/^[a-zA-Z][a-zA-Z0-9_]*$/.test(currentValue)) {
-                    hasFormatError = true;
-                } else if (currentValue.length > 8) {
-                    hasFormatError = true;
-                }
+                hasFormatError = validateAnalysisOrGroupName(currentValue) !== null;
             }
 
             // Only use inline validation - stored errors may be stale
